@@ -7,40 +7,26 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
 from torch.optim import AdamW
-from transformers import  get_cosine_schedule_with_warmup
+from transformers import  get_cosine_schedule_with_warmup, AutoModelForSeq2SeqLM
 
 
 torch.set_float32_matmul_precision('medium')
 
 
-class Model:
-    # blank; TODO
-    pass
-
-class ModelConfig:
-    # blank; TODO
-    pass
 
 class LightningModel(pl.LightningModule):
-    def __init__(self, config: ModelConfig) -> None:
+    def __init__(self) -> None:
         super(LightningModel, self).__init__()
-        self.model = Model(config)
+        self.model = AutoModelForSeq2SeqLM.from_pretrained('facebook/nllb-200-distilled-600M')
 
         self.criterion = nn.CrossEntropyLoss(ignore_index = None)
 
         self.test_metrics = []
-        self.config = config
 
     def forward(self, tokens):
         out = self.model.forward(tokens)
 
         return out
-    
-    # def on_train_start(self) -> None:
-    #     self.logger.log_hyperparams(self.config.decoder_config)
-
-    # def on_test_start(self) -> None:
-    #     self.on_train_start()
 
     def training_step(self, batch, batch_idx):
         tokens, target = batch.values()
@@ -85,7 +71,7 @@ class LightningModel(pl.LightningModule):
         }
     
 
-def train(batch_size: int = 32, config_path: str = "model_config.json", checkpoints_dir: str = "models/checkpoint", checkpoint_path: Optional[str] = None,  model_id: str = None):
+def train(batch_size: int = 32, config_path: str = "model_config.json", checkpoints_dir: str = "models/checkpoint", checkpoint_path: Optional[str] = None,  model_id: str = "facebook/nllb-200-distilled-600M"):
     logger = TensorBoardLogger("./tb_logs")
 
     checkpoint_callback = ModelCheckpoint(
