@@ -87,7 +87,7 @@ class TrainDataset(Dataset):
     def __len__(self):
         return len(self.df)
 
-class CollateFn():
+class TrainCollateFn():
     def __init__(self, tokenizer: NllbTokenizer, ignore_index = -100) -> None:
         self.tokenizer = tokenizer
         self.ignore_index = ignore_index # NOTE: -100 is default ignore_index
@@ -117,9 +117,8 @@ class CollateFn():
     
 
 
-class TestDataset(Dataset):
-    def __init__(self, df, tokenizer: NllbTokenizer, src_lang, tgt_lang, a=32, b=3, max_input_length=1024, num_beams=4):
-        self.df = df
+class TestCollateFn():
+    def __init__(self, tokenizer: NllbTokenizer, src_lang, tgt_lang, a=32, b=3, max_input_length=1024, num_beams=4):
         self.tokenizer = tokenizer
 
         self.tokenizer.src_lang = src_lang
@@ -136,23 +135,21 @@ class TestDataset(Dataset):
         self.max_input_length = max_input_length
         self.num_beams = num_beams
 
+    def __call__(self, batch: list) -> dict:
+        return self.pad_batch(batch)
 
-    def __getitem__(self, idx):
+    def pad_batch(self, batch: list) -> dict:        
+        x_texts, y_texts = [], []
+        for item in batch:
+            x_texts.append(preproc(item[self.covert[self.tokenizer.src_lang]]))
+            y_texts.append(preproc(item[self.covert[self.tokenizer.tgt_lang]]))
 
-        item = self.df.iloc[idx]
+        inputs = self.tokenizer(x_texts, return_tensors='pt', padding='longest')
 
-        src_text = preproc(item[self.covert[self.tokenizer.src_lang]])
-        tgt_text = preproc(item[self.covert[self.tokenizer.tgt_lang]])
-
-        inputs = self.tokenizer(src_text, return_tensors='pt', padding=True, truncation=True, max_length=self.max_input_length)
-       
         return {
             "x": inputs,
             "forced_bos_token_id": self.tokenizer.convert_tokens_to_ids(self.tokenizer.tgt_lang),
             "max_new_tokens": int(self.a + self.b * inputs.input_ids.shape[1]), # TODO: Think about it
             "num_beams": self.num_beams,
-            "tgt_text": tgt_text
+            "tgt_text": y_texts
         }
-    
-    def __len__(self):
-        return len(self.df)

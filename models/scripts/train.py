@@ -12,7 +12,7 @@ from pytorch_lightning.utilities import rank_zero_only
 from transformers.optimization import Adafactor
 from transformers import  get_constant_schedule_with_warmup, AutoModelForSeq2SeqLM, NllbTokenizer
 from tqdm import tqdm
-from dataset import load_data, CollateFn, TrainDataset
+from dataset import load_data, TrainCollateFn, TrainDataset
 from torch.utils.data import DataLoader
 
 torch.set_float32_matmul_precision('medium')
@@ -54,13 +54,12 @@ class LightningModel(pl.LightningModule):
     
     def test_step(self, batch, batch_idx):
         inputs, forced_bos_token_id, max_new_tokens, num_beams, tgt_text = batch.values()
-
+        
         result = self.model.generate(
-            input_ids = inputs.input_ids.squeeze(0),
-            attention_mask = inputs.attention_mask.squeeze(0),
-            forced_bos_token_id=forced_bos_token_id.squeeze(0),
-            max_new_tokens=max_new_tokens.squeeze(0),
-            num_beams=num_beams.item()
+            **inputs,
+            forced_bos_token_id=forced_bos_token_id,
+            max_new_tokens=max_new_tokens,
+            num_beams=num_beams
         )
 
         result_text = self.tokenizer.batch_decode(result, skip_special_tokens=True)
@@ -158,10 +157,10 @@ def train(batch_size: int = 16, checkpoints_dir: str = "models/checkpoint", chec
     tokenizer = NllbTokenizer.from_pretrained("re-init/tokenizer/nllb-200-distilled-600M")
 
     train_dataset = TrainDataset(train_df)
-    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=CollateFn(tokenizer), num_workers=14)
+    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=TrainCollateFn(tokenizer), num_workers=14)
 
     val_dataset = TrainDataset(val_df)
-    val_dataloader = DataLoader(val_dataset, batch_size=batch_size, collate_fn=CollateFn(tokenizer), num_workers=14)
+    val_dataloader = DataLoader(val_dataset, batch_size=batch_size, collate_fn=TrainCollateFn(tokenizer), num_workers=14)
 
     lr_monitor = LearningRateMonitor(logging_interval='step')
     lightning_model = LightningModel(model)

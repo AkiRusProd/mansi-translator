@@ -3,7 +3,7 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning import Trainer
 from transformers import  AutoModelForSeq2SeqLM, NllbTokenizer
 
-from dataset import TestDataset, load_data
+from dataset import load_data, TrainDataset, TestCollateFn
 from train import LightningModel
 from torch.utils.data import DataLoader
 
@@ -13,8 +13,8 @@ if __name__ == "__main__":
     model = AutoModelForSeq2SeqLM.from_pretrained("re-init/model/nllb-200-distilled-600M")
     tokenizer = NllbTokenizer.from_pretrained("re-init/tokenizer/nllb-200-distilled-600M")
 
-    test_dataset = TestDataset(test_df, tokenizer, 'mansi_Cyrl', 'rus_Cyrl')
-    test_dataloader = DataLoader(test_dataset, batch_size=1, num_workers=14)
+    test_dataset = TrainDataset(test_df)
+    test_dataloader = DataLoader(test_dataset, batch_size=1, num_workers=14, collate_fn = TestCollateFn(tokenizer, 'mansi_Cyrl', 'rus_Cyrl'))
 
     logger = TensorBoardLogger("./tb_logs")
 
