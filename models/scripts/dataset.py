@@ -70,12 +70,12 @@ def load_data(dataset_path):
     print(f"Val size: {len(val_df)}")
     print(f"Test size: {len(test_df)}")
 
-    return train_df, test_df, val_df
+    return train_df, val_df, test_df
 
 
 
 
-class MansiRusDataset(Dataset):
+class TrainDataset(Dataset):
     def __init__(self, df):
         self.df = df
 
@@ -87,7 +87,7 @@ class MansiRusDataset(Dataset):
     def __len__(self):
         return len(self.df)
 
-class CollateFn():
+class TrainCollateFn():
     def __init__(self, tokenizer: NllbTokenizer, ignore_index = -100) -> None:
         self.tokenizer = tokenizer
         self.ignore_index = ignore_index # NOTE: -100 is default ignore_index
@@ -113,4 +113,43 @@ class CollateFn():
         return {
             "x": x,
             "y": y,
+        }
+    
+
+
+class TestCollateFn():
+    def __init__(self, tokenizer: NllbTokenizer, src_lang, tgt_lang, a=32, b=3, max_input_length=1024, num_beams=4):
+        self.tokenizer = tokenizer
+
+        self.tokenizer.src_lang = src_lang
+        self.tokenizer.tgt_lang = tgt_lang
+
+        # TODO: Change this
+        self.covert = {
+            "rus_Cyrl": "ru",
+            "mansi_Cyrl": "mansi"
+        }
+
+        self.a = a
+        self.b = b
+        self.max_input_length = max_input_length
+        self.num_beams = num_beams
+
+    def __call__(self, batch: list) -> dict:
+        return self.pad_batch(batch)
+
+    def pad_batch(self, batch: list) -> dict:        
+        x_texts, y_texts = [], []
+        for item in batch:
+            x_texts.append(preproc(item[self.covert[self.tokenizer.src_lang]]))
+            y_texts.append(preproc(item[self.covert[self.tokenizer.tgt_lang]]))
+
+        inputs = self.tokenizer(x_texts, return_tensors='pt', padding='longest')
+
+        return {
+            "x": inputs,
+            "forced_bos_token_id": self.tokenizer.convert_tokens_to_ids(self.tokenizer.tgt_lang),
+            "max_new_tokens": int(self.a + self.b * inputs.input_ids.shape[1]), # TODO: Think about it
+            "num_beams": self.num_beams,
+            "tgt_text": y_texts
         }
