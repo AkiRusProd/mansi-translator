@@ -4,8 +4,12 @@ from pytorch_lightning import Trainer
 from transformers import  AutoModelForSeq2SeqLM, NllbTokenizer
 
 from dataset import load_data, TrainDataset, TestCollateFn
-from train_model import LightningModel
+from models.scripts.train_model import LightningModel
 from torch.utils.data import DataLoader
+
+"""
+python -m models.scripts.test_model
+"""
 
 if __name__ == "__main__":
     _, _, test_df = load_data("data/cleared-v2.csv")

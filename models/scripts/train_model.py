@@ -12,13 +12,15 @@ from pytorch_lightning.utilities import rank_zero_only
 from transformers.optimization import Adafactor
 from transformers import  get_constant_schedule_with_warmup, AutoModelForSeq2SeqLM, NllbTokenizer
 from tqdm import tqdm
-from dataset import load_data, TrainCollateFn, TrainDataset
+from models.scripts.dataset import load_data, TrainCollateFn, TrainDataset
 from torch.utils.data import DataLoader
 
 torch.set_float32_matmul_precision('medium')
 
 # TODO: Think about model loading by config
-
+"""
+python -m models.scripts.train_model
+"""
 
 class LightningModel(pl.LightningModule):
     def __init__(self, model: AutoModelForSeq2SeqLM, tokenizer: NllbTokenizer = None) -> None:
