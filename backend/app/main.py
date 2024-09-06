@@ -44,7 +44,7 @@ print("Model load")
 
 
 if __name__ == "__main__":
-
+    # uvicorn backend.main:app --reload
 
     import uvicorn
     uvicorn.run(app)
