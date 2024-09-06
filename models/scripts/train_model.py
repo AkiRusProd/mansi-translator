@@ -31,6 +31,19 @@ class LightningModel(pl.LightningModule):
         self.bleu_calc = sacrebleu.BLEU()
         self.chrf_calc = sacrebleu.CHRF(word_order=2)  # this metric is called ChrF++
 
+    def predict(self, text, src_lang='mansi_Cyrl', tgt_lang='rus_Cyrl', a=32, b=3, max_input_length=1024, num_beams=4, **kwargs):
+        self.tokenizer.src_lang = src_lang
+        self.tokenizer.tgt_lang = tgt_lang
+        inputs = self.tokenizer(text, return_tensors='pt', padding=True, truncation=True, max_length=max_input_length)
+        result = self.model.generate(
+            **inputs.to(self.model.device),
+            forced_bos_token_id=self.tokenizer.convert_tokens_to_ids(tgt_lang),
+            max_new_tokens=int(a + b * inputs.input_ids.shape[1]),
+            num_beams=num_beams,
+            **kwargs
+        )
+        return self.tokenizer.batch_decode(result, skip_special_tokens=True)
+
     def forward(self, src):
         out = self.model(**src)
 
@@ -135,7 +148,7 @@ def prepare_model_and_tokenizer(model_name, vocab_file):
 
 def train(batch_size: int = 16, checkpoints_dir: str = "models/checkpoint", checkpoint_path: Optional[str] = None,  model_name: str = "facebook/nllb-200-distilled-600M", vocab_file: str = "spm_nllb_mansi_268k.model"):
 
-    train_df, val_df, _ = load_data("data/src/rus_mansi_overall_80K.csv")
+    train_df, val_df, _ = load_data("data/cleared_v2.csv")
     
     logger = TensorBoardLogger("./tb_logs")
 
