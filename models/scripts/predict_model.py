@@ -1,8 +1,10 @@
 import torch
-from train_model import LightningModel
+from models.scripts.train_model import LightningModel
 from transformers import AutoModelForSeq2SeqLM, NllbTokenizer
 
-
+"""
+python -m models.scripts.predict_model
+"""
 
 if __name__ == "__main__":
     model = AutoModelForSeq2SeqLM.from_pretrained("re-init/model/nllb-200-distilled-600M")
