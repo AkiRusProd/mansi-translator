@@ -8,9 +8,9 @@ const addSymb = [
   'а̄', 'ē', 'ё̄', 'ӣ', 'ӈ', 'о̄', 'ӯ', 'ы̄', 'э̄', 'ю̄', 'я̄'
 ]
 
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
+// function sleep(ms) {
+//   return new Promise(resolve => setTimeout(resolve, ms));
+// }
 
 const Translator = () => {
   const [sourceLng, setSourceLng] = useState('Русский')
@@ -25,9 +25,10 @@ const Translator = () => {
     let target = targetLng.slice()
     setSourceLng(target)
     setTargetLng(src)
-    if (sourceText.length > 0) {
+    if (translationText.length > 0) {
       setIsLoading(true)
-      sendTranslation(sourceText)
+      let src_text = translationText.slice()
+      sendTranslation(src_text)
     }
   }
 
