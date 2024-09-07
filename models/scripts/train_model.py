@@ -68,7 +68,9 @@ class LightningModel(pl.LightningModule):
         return loss
     
     def test_step(self, batch, batch_idx):
-        inputs, forced_bos_token_id, max_new_tokens, num_beams, tgt_text = batch.values()
+        inputs, forced_bos_token_id, max_new_tokens, num_beams, tgt_text, src_lang, tgt_lang = batch.values()
+        self.tokenizer.src_lang = src_lang
+        self.tokenizer.tgt_lang = tgt_lang
         
         result = self.model.generate(
             **inputs,
@@ -90,8 +92,8 @@ class LightningModel(pl.LightningModule):
                 result_texts.append(result_text)
                 tgt_texts.append(tgt_text)
 
-            bleu_score = self.bleu_calc.corpus_score(result_texts, tgt_texts).score
-            chrf_score = self.chrf_calc.corpus_score(result_texts, tgt_texts).score
+            bleu_score = self.bleu_calc.corpus_score(result_texts, [tgt_texts]).score
+            chrf_score = self.chrf_calc.corpus_score(result_texts, [tgt_texts]).score
 
             self.log("BLEU", bleu_score)
             self.log("chrF", chrf_score)
@@ -169,7 +171,7 @@ def train(batch_size: int = 16, checkpoints_dir: str = "models/checkpoint", chec
         prepare_model_and_tokenizer(model_name, vocab_file)
         
     model = AutoModelForSeq2SeqLM.from_pretrained("re-init/model/nllb-200-distilled-600M")
-    tokenizer = NllbTokenizer.from_pretrained("re-init/tokenizer/nllb-200-distilled-600M")
+    tokenizer = NllbTokenizer.from_pretrained("re-init/tokenizer/nllb-200-distilled-600M", vocab_file=vocab_file)
 
     train_dataset = TrainDataset(train_df)
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=TrainCollateFn(tokenizer), num_workers=14)

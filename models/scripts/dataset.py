@@ -163,5 +163,7 @@ class TestCollateFn():
             "forced_bos_token_id": self.tokenizer.convert_tokens_to_ids(self.tokenizer.tgt_lang),
             "max_new_tokens": int(self.a + self.b * inputs.input_ids.shape[1]), # TODO: Think about it
             "num_beams": self.num_beams,
-            "tgt_text": y_texts
+            "tgt_text": y_texts,
+            "src_lang": self.tokenizer.src_lang,
+            "tgt_lang": self.tokenizer.tgt_lang
         }

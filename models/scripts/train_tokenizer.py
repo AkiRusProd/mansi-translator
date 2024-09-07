@@ -6,7 +6,7 @@ from transformers import NllbTokenizer, AutoModelForSeq2SeqLM
 from tqdm import tqdm
 import pandas as pd
 
-from dataset import preproc
+from models.scripts.dataset import preproc
  
 # TODO: REFACTOR THIS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
