@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const serverUrl = 'http://localhost:8000'
+const serverUrl = 'http://127.0.0.1:8000'
 
 const guestInstance = axios.create({
     baseURL: serverUrl 
