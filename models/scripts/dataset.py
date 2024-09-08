@@ -7,6 +7,7 @@ from torch.utils.data import Dataset
 import random
 from sacremoses import MosesPunctNormalizer
 from transformers import NllbTokenizer
+from pathlib import Path
 
 # TODO: Refactor this bulshit
 mpn = MosesPunctNormalizer(lang="en")
@@ -45,26 +46,34 @@ LANGS = [('ru', 'rus_Cyrl'), ('mansi', 'mansi_Cyrl')]
 
 
 def load_data(dataset_path):
-    # TODO: Add split save ???
-    
-    df = pd.read_csv(dataset_path)
+    parent_path = Path(dataset_path).parent
 
-    df = df.rename(columns={ # TODO: This is bulshit, remove it
-        'target': 'mansi',
-        'source': 'ru'
-    })
+    if not (parent_path / 'train_split.csv').exists():
+        df = pd.read_csv(dataset_path)
 
-    shuffled_df = df.sample(frac=1).reset_index(drop=True)
+        df = df.rename(columns={ # TODO: This is bulshit, remove it
+            'target': 'mansi',
+            'source': 'ru'
+        })
 
-    total_size = len(shuffled_df)
-    test_size = int(total_size * 0.1)
-    val_size = int(total_size * 0.1)
-    # train_size = total_size - test_size - val_size
+        shuffled_df = df.sample(frac=1).reset_index(drop=True)
 
-    test_df = shuffled_df[:test_size]
-    val_df = shuffled_df[test_size: test_size + val_size]
-    train_df = shuffled_df[test_size + val_size:]
+        total_size = len(shuffled_df)
+        test_size = int(total_size * 0.1)
+        val_size = int(total_size * 0.1)
+        # train_size = total_size - test_size - val_size
 
+        test_df = shuffled_df[:test_size]
+        val_df = shuffled_df[test_size: test_size + val_size]
+        train_df = shuffled_df[test_size + val_size:]
+
+        train_df.to_csv(parent_path / 'train_split.csv', index=False)
+        val_df.to_csv(parent_path / 'val_split.csv', index=False)
+        test_df.to_csv(parent_path / 'test_split.csv', index=False)
+    else:
+        train_df = pd.read_csv(parent_path / 'train_split.csv')
+        val_df = pd.read_csv(parent_path / 'val_split.csv')
+        test_df = pd.read_csv(parent_path / 'test_split.csv')
 
     print(f"Train size: {len(train_df)}")
     print(f"Val size: {len(val_df)}")
@@ -88,9 +97,10 @@ class TrainDataset(Dataset):
         return len(self.df)
 
 class TrainCollateFn():
-    def __init__(self, tokenizer: NllbTokenizer, ignore_index = -100) -> None:
+    def __init__(self, tokenizer: NllbTokenizer, ignore_index = -100, max_length = 128) -> None:
         self.tokenizer = tokenizer
         self.ignore_index = ignore_index # NOTE: -100 is default ignore_index
+        self.max_length = max_length
 
     def __call__(self, batch: list) -> dict:
         return self.pad_batch(batch)
@@ -104,9 +114,11 @@ class TrainCollateFn():
             y_texts.append(preproc(item[l2]))
 
         self.tokenizer.src_lang = lang1
-        x = self.tokenizer(x_texts, return_tensors='pt', padding='longest')
+        # x = self.tokenizer(x_texts, return_tensors='pt', padding='longest')
+        x = self.tokenizer(x_texts, return_tensors='pt', padding=True, truncation=True, max_length=self.max_length)
         self.tokenizer.src_lang = lang2
-        y = self.tokenizer(y_texts, return_tensors='pt', padding='longest')
+        # y = self.tokenizer(y_texts, return_tensors='pt', padding='longest')
+        y = self.tokenizer(y_texts, return_tensors='pt', padding=True, truncation=True, max_length=self.max_length)
 
         y.input_ids[y.input_ids == self.tokenizer.pad_token_id] = self.ignore_index
 
@@ -151,5 +163,7 @@ class TestCollateFn():
             "forced_bos_token_id": self.tokenizer.convert_tokens_to_ids(self.tokenizer.tgt_lang),
             "max_new_tokens": int(self.a + self.b * inputs.input_ids.shape[1]), # TODO: Think about it
             "num_beams": self.num_beams,
-            "tgt_text": y_texts
+            "tgt_text": y_texts,
+            "src_lang": self.tokenizer.src_lang,
+            "tgt_lang": self.tokenizer.tgt_lang
         }

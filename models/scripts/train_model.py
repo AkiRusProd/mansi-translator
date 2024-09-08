@@ -12,13 +12,15 @@ from pytorch_lightning.utilities import rank_zero_only
 from transformers.optimization import Adafactor
 from transformers import  get_constant_schedule_with_warmup, AutoModelForSeq2SeqLM, NllbTokenizer
 from tqdm import tqdm
-from dataset import load_data, TrainCollateFn, TrainDataset
+from models.scripts.dataset import load_data, TrainCollateFn, TrainDataset
 from torch.utils.data import DataLoader
 
 torch.set_float32_matmul_precision('medium')
 
 # TODO: Think about model loading by config
-
+"""
+python -m models.scripts.train_model
+"""
 
 class LightningModel(pl.LightningModule):
     def __init__(self, model: AutoModelForSeq2SeqLM, tokenizer: NllbTokenizer = None) -> None:
@@ -30,6 +32,19 @@ class LightningModel(pl.LightningModule):
         
         self.bleu_calc = sacrebleu.BLEU()
         self.chrf_calc = sacrebleu.CHRF(word_order=2)  # this metric is called ChrF++
+
+    def predict(self, text, src_lang='mansi_Cyrl', tgt_lang='rus_Cyrl', a=32, b=3, max_input_length=1024, num_beams=4, **kwargs):
+        self.tokenizer.src_lang = src_lang
+        self.tokenizer.tgt_lang = tgt_lang
+        inputs = self.tokenizer(text, return_tensors='pt', padding=True, truncation=True, max_length=max_input_length)
+        result = self.model.generate(
+            **inputs.to(self.model.device),
+            forced_bos_token_id=self.tokenizer.convert_tokens_to_ids(tgt_lang),
+            max_new_tokens=int(a + b * inputs.input_ids.shape[1]),
+            num_beams=num_beams,
+            **kwargs
+        )
+        return self.tokenizer.batch_decode(result, skip_special_tokens=True)
 
     def forward(self, src):
         out = self.model(**src)
@@ -53,7 +68,9 @@ class LightningModel(pl.LightningModule):
         return loss
     
     def test_step(self, batch, batch_idx):
-        inputs, forced_bos_token_id, max_new_tokens, num_beams, tgt_text = batch.values()
+        inputs, forced_bos_token_id, max_new_tokens, num_beams, tgt_text, src_lang, tgt_lang = batch.values()
+        self.tokenizer.src_lang = src_lang
+        self.tokenizer.tgt_lang = tgt_lang
         
         result = self.model.generate(
             **inputs,
@@ -75,8 +92,8 @@ class LightningModel(pl.LightningModule):
                 result_texts.append(result_text)
                 tgt_texts.append(tgt_text)
 
-            bleu_score = self.bleu_calc.corpus_score(result_texts, tgt_texts).score
-            chrf_score = self.chrf_calc.corpus_score(result_texts, tgt_texts).score
+            bleu_score = self.bleu_calc.corpus_score(result_texts, [tgt_texts]).score
+            chrf_score = self.chrf_calc.corpus_score(result_texts, [tgt_texts]).score
 
             self.log("BLEU", bleu_score)
             self.log("chrF", chrf_score)
@@ -135,7 +152,7 @@ def prepare_model_and_tokenizer(model_name, vocab_file):
 
 def train(batch_size: int = 16, checkpoints_dir: str = "models/checkpoint", checkpoint_path: Optional[str] = None,  model_name: str = "facebook/nllb-200-distilled-600M", vocab_file: str = "spm_nllb_mansi_268k.model"):
 
-    train_df, val_df, _ = load_data("data/src/rus_mansi_overall_80K.csv")
+    train_df, val_df, _ = load_data("data/cleared_v2.csv")
     
     logger = TensorBoardLogger("./tb_logs")
 
@@ -154,7 +171,7 @@ def train(batch_size: int = 16, checkpoints_dir: str = "models/checkpoint", chec
         prepare_model_and_tokenizer(model_name, vocab_file)
         
     model = AutoModelForSeq2SeqLM.from_pretrained("re-init/model/nllb-200-distilled-600M")
-    tokenizer = NllbTokenizer.from_pretrained("re-init/tokenizer/nllb-200-distilled-600M")
+    tokenizer = NllbTokenizer.from_pretrained("re-init/tokenizer/nllb-200-distilled-600M", vocab_file=vocab_file)
 
     train_dataset = TrainDataset(train_df)
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=TrainCollateFn(tokenizer), num_workers=14)

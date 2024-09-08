@@ -162,9 +162,10 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-# Node.js
+# node.js
 node_modules
 
 # Other
 .DS_Store
 tb_logs/
+checkpoint/
