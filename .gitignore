@@ -169,3 +169,4 @@ node_modules
 .DS_Store
 tb_logs/
 checkpoint/
+pretrained/
