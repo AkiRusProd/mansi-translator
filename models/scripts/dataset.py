@@ -9,7 +9,10 @@ from sacremoses import MosesPunctNormalizer
 from transformers import NllbTokenizer
 from pathlib import Path
 
-# TODO: Refactor this bulshit
+# TODO: Refactor this
+
+LANGS = [('ru', 'rus_Cyrl'), ('mansi', 'mansi_Cyrl')]
+
 mpn = MosesPunctNormalizer(lang="en")
 mpn.substitutions = [
     (re.compile(r), sub) for r, sub in mpn.substitutions
@@ -39,22 +42,11 @@ def preproc(text):
     clean = unicodedata.normalize("NFKC", clean)
     return clean
 
-
-LANGS = [('ru', 'rus_Cyrl'), ('mansi', 'mansi_Cyrl')]
-
-
-
-
 def load_data(dataset_path, words_dict_path = None):
     parent_path = Path(dataset_path).parent
 
     if not (parent_path / 'train_split.csv').exists():
         df = pd.read_csv(dataset_path)
-
-        df = df.rename(columns={ # TODO: This is bulshit, remove it
-            'target': 'mansi',
-            'source': 'ru'
-        })
 
         shuffled_df = df.sample(frac=1).reset_index(drop=True)
 
@@ -77,10 +69,6 @@ def load_data(dataset_path, words_dict_path = None):
 
     if words_dict_path:
         words_dict_df = pd.read_csv(words_dict_path)
-        words_dict_df = words_dict_df.rename(columns={ # TODO: This is bulshit, remove it
-            'target': 'mansi',
-            'source': 'ru'
-        })
 
         train_df_with_words = pd.concat([train_df, words_dict_df], ignore_index=True)
         train_df_with_words.to_csv(parent_path / 'train_split_with_words.csv')
@@ -109,7 +97,7 @@ class ThisDataset(Dataset):
 class CollateFn():
     def __init__(self, tokenizer: NllbTokenizer, ignore_index = -100, max_length = 128) -> None:
         self.tokenizer = tokenizer
-        self.ignore_index = ignore_index # NOTE: -100 is default ignore_index
+        self.ignore_index = ignore_index
         self.max_length = max_length
 
     def __call__(self, batch: list) -> dict:

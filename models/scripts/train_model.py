@@ -10,7 +10,7 @@ from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.utilities import rank_zero_only, CombinedLoader
 # from pytorch_lightning.strategies import FSDPStrategy
-from transformers.optimization import Adafactor
+# from transformers.optimization import Adafactor
 from transformers import AutoModelForSeq2SeqLM, NllbTokenizer, get_cosine_schedule_with_warmup
 from tqdm import tqdm
 from torch.optim import AdamW
@@ -19,7 +19,7 @@ from torch.utils.data import DataLoader
 
 torch.set_float32_matmul_precision('medium')
 
-# TODO: Think about model loading by config
+
 """
 python -m models.scripts.train_model
 """
@@ -66,10 +66,12 @@ class LightningModel(pl.LightningModule):
         
         loss = self.model(**src, labels=tgt.input_ids).loss
         # for CombinedDataloader metric is [val_loss/dataloader_idx_0', 'val_loss/dataloader_idx_1']
-        if "val_loss" not in self.trainer.callback_metrics: # Do not delete this!
-            self.log("val_loss", loss, sync_dist=True, add_dataloader_idx=False)
-
-        self.log("val_loss", loss, sync_dist=True)
+        if "val_loss" not in self.trainer.callback_metrics: # Do not delete this! # TODO: Think about it
+            self.trainer.callback_metrics["val_loss"] = 0 # init loading
+            # self.log("val_loss", loss, sync_dist=True, add_dataloader_idx=False) # ckpt loading
+            # self.logger.experiment.add_scalar("val_loss", loss, global_step=self.global_step)
+        else:
+            self.log("val_loss", loss, sync_dist=True)
 
         return loss
     
@@ -129,9 +131,7 @@ class LightningModel(pl.LightningModule):
         # scheduler = get_constant_schedule_with_warmup(optimizer, num_warmup_steps=1_000)
 
         optimizer = AdamW([p for p in self.model.parameters() if p.requires_grad], lr = 2e-4, betas = (0.9, 0.98)) # best : lr = 2e-4, betas = (0.9, 0.95) max_steps=50000 #; 1e-3 max_steps = 10000, wmup = 300
-        # scheduler = CosineAnnealingLR(optimizer, self.trainer.max_steps)
-        scheduler = get_cosine_schedule_with_warmup(optimizer, num_warmup_steps=0, num_training_steps=self.trainer.max_steps)
-
+        scheduler = get_cosine_schedule_with_warmup(optimizer, num_warmup_steps=700, num_training_steps=self.trainer.max_steps)
 
         return {
             'optimizer': optimizer,
@@ -142,9 +142,11 @@ class LightningModel(pl.LightningModule):
             }
         }
     
+    def convert_ckpt_to_tranformers(self, save_directory: str):
+        self.model.save_pretrained(save_directory)
 
 @rank_zero_only
-def prepare_model_and_tokenizer(model_name, vocab_file):
+def prepare_model_and_tokenizer(model_name, vocab_file, reinit_model_path):
     # TODO: Refactor this
 
     # loading the tokenizers
@@ -164,15 +166,23 @@ def prepare_model_and_tokenizer(model_name, vocab_file):
         idx = tokenizer.convert_tokens_to_ids(t)
         model.model.shared.weight.data[idx] = model.model.shared.weight.data[tt].mean(0)
 
-    model.save_pretrained("models/checkpoint/re-init/model/nllb-200-distilled-600M")
-    tokenizer.save_pretrained("models/checkpoint/re-init/tokenizer/nllb-200-distilled-600M")
+    model.save_pretrained(reinit_model_path)
+    tokenizer.save_pretrained(reinit_model_path)
 
     del model, tokenizer
     
 
-def train(batch_size: int = 16, checkpoints_dir: str = "models/checkpoint", checkpoint_path: Optional[str] = None,  model_name: str = "facebook/nllb-200-distilled-600M", vocab_file: str = "models/checkpoint/re-init/spm_nllb_mansi_268k.model"):
-
-    train_df, val_df = pd.read_csv("data/cleared_v2/cleared_v2_train_09.csv"), pd.read_csv("data/cleared_v2/cleared_v2_val_005.csv")
+def train(
+    batch_size: int = 16, 
+    checkpoints_dir: str = "models/checkpoint", 
+    checkpoint_path: Optional[str] = None,  
+    model_name: str = "facebook/nllb-200-distilled-600M", 
+    vocab_file: str = "models/checkpoint/re-init/spm_nllb_mansi_268k.model",
+    reinit_model_path: str = "models/checkpoint/re-init",
+    train_df_path: str = "data/cleared_v2/cleared_v2_train_09.csv",
+    val_df_path: str = "data/cleared_v2/cleared_v2_val_005.csv"
+):
+    train_df, val_df = pd.read_csv(train_df_path), pd.read_csv(val_df_path)
     
     logger = TensorBoardLogger("./tb_logs")
 
@@ -185,13 +195,13 @@ def train(batch_size: int = 16, checkpoints_dir: str = "models/checkpoint", chec
         save_last=True
     )
 
-    init_dir: Path = Path("models/checkpoint/re-init")
-    if not init_dir.exists():
-        init_dir.mkdir(parents=True, exist_ok=True)
-        prepare_model_and_tokenizer(model_name, vocab_file)
+    reinit_model_path: Path = Path(reinit_model_path)
+    if not reinit_model_path.exists():
+        reinit_model_path.mkdir(parents=True, exist_ok=True)
+        prepare_model_and_tokenizer(model_name, vocab_file, reinit_model_path)
         
-    model = AutoModelForSeq2SeqLM.from_pretrained("models/checkpoint/re-init/model/nllb-200-distilled-600M")
-    tokenizer = NllbTokenizer.from_pretrained("models/checkpoint/re-init/tokenizer/nllb-200-distilled-600M", vocab_file=vocab_file)
+    model = AutoModelForSeq2SeqLM.from_pretrained(reinit_model_path)
+    tokenizer = NllbTokenizer.from_pretrained(reinit_model_path, vocab_file=vocab_file)
 
     train_dataloader = DataLoader(ThisDataset(train_df), batch_size=batch_size, shuffle=True, collate_fn=CollateFn(tokenizer), num_workers=14)
 
@@ -203,12 +213,12 @@ def train(batch_size: int = 16, checkpoints_dir: str = "models/checkpoint", chec
     lr_monitor = LearningRateMonitor(logging_interval='step')
     lightning_model = LightningModel(model)
     
-    trainer = Trainer(max_steps=30000, callbacks=[checkpoint_callback, lr_monitor], strategy="fsdp", logger=logger, devices = "auto", log_every_n_steps=1, val_check_interval = 200, precision="16-mixed") # check_val_every_n_epoch=1 val_check_interval=4482,
+    trainer = Trainer(max_steps=21000, callbacks=[checkpoint_callback, lr_monitor], strategy="fsdp", logger=logger, devices = "auto", log_every_n_steps=1, val_check_interval = 200, precision="16-mixed") # check_val_every_n_epoch=1 val_check_interval=4482,
     trainer.fit(model=lightning_model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloaders, ckpt_path=checkpoint_path)
 
 
 
 if __name__ == "__main__":
-    # typer.run(train)
-    train()
+    typer.run(train)
+
     
