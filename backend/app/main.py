@@ -25,8 +25,6 @@ class TranslationRequest(BaseModel):
 class TranslationResponse(BaseModel):
     translated_text: str
 
-
-
 @app.post("/translate", response_model = TranslationResponse)
 async def  translate(request: TranslationRequest):
     print(request)
@@ -44,10 +42,10 @@ async def  translate(request: TranslationRequest):
 # model = AutoModelForSeq2SeqLM.from_pretrained("re-init/model/nllb-200-distilled-600M")
 # tokenizer = NllbTokenizer.from_pretrained("re-init/tokenizer/nllb-200-distilled-600M")
 
-# GPU loading
+# GPU ckpt loading
 # model = LightningModel.load_from_checkpoint(models/checkpoint/last.ckpt)
 
-# CPU loading
+# CPU ckpt loading
 # ckpt = torch.load('models/checkpoint/last.ckpt', map_location=torch.device("cpu"))
 # model = LightningModel(model, tokenizer)
 # model.load_state_dict(ckpt['state_dict'])
