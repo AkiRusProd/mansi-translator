@@ -80,13 +80,14 @@ async def translate(request: TranslationRequest):
 
 # TODO: Refactor this
 
+on_startup()
 
 if __name__ == "__main__":
     # uvicorn backend.app.main:app --reload
 
     import uvicorn
     uvicorn.run(
-        "main:app",
+        app,
         port=CONFIG['FASTAPI_PORT'],
         reload=True,
         log_config="log.ini"
