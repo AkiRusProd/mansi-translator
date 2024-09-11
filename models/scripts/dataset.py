@@ -45,7 +45,7 @@ LANGS = [('ru', 'rus_Cyrl'), ('mansi', 'mansi_Cyrl')]
 
 
 
-def load_data(dataset_path):
+def load_data(dataset_path, words_dict_path = None):
     parent_path = Path(dataset_path).parent
 
     if not (parent_path / 'train_split.csv').exists():
@@ -75,6 +75,18 @@ def load_data(dataset_path):
         val_df = pd.read_csv(parent_path / 'val_split.csv')
         test_df = pd.read_csv(parent_path / 'test_split.csv')
 
+    if words_dict_path:
+        words_dict_df = pd.read_csv(words_dict_path)
+        words_dict_df = words_dict_df.rename(columns={ # TODO: This is bulshit, remove it
+            'target': 'mansi',
+            'source': 'ru'
+        })
+
+        train_df_with_words = pd.concat([train_df, words_dict_df], ignore_index=True)
+        train_df_with_words.to_csv(parent_path / 'train_split_with_words.csv')
+
+        train_df = train_df_with_words
+
     print(f"Train size: {len(train_df)}")
     print(f"Val size: {len(val_df)}")
     print(f"Test size: {len(test_df)}")
@@ -82,9 +94,7 @@ def load_data(dataset_path):
     return train_df, val_df, test_df
 
 
-
-
-class TrainDataset(Dataset):
+class ThisDataset(Dataset):
     def __init__(self, df):
         self.df = df
 
@@ -96,18 +106,19 @@ class TrainDataset(Dataset):
     def __len__(self):
         return len(self.df)
 
-class TrainCollateFn():
+class CollateFn():
     def __init__(self, tokenizer: NllbTokenizer, ignore_index = -100, max_length = 128) -> None:
         self.tokenizer = tokenizer
         self.ignore_index = ignore_index # NOTE: -100 is default ignore_index
         self.max_length = max_length
 
     def __call__(self, batch: list) -> dict:
-        return self.pad_batch(batch)
+        langs = random.sample(LANGS, 2) # Random choice between [ru->mansi, mansi->ru]
+        return self.pad_batch(batch, langs)
 
-    def pad_batch(self, batch: list) -> dict:
-        (l1, lang1), (l2, lang2) = random.sample(LANGS, 2) # Random choice between [ru->mansi, mansi->ru]
-        
+    def pad_batch(self, batch: list, langs) -> dict:
+        (l1, lang1), (l2, lang2) = langs
+
         x_texts, y_texts = [], []
         for item in batch:
             x_texts.append(preproc(item[l1]))
@@ -127,6 +138,22 @@ class TrainCollateFn():
             "y": y,
         }
     
+class LangCollateFn(CollateFn):
+    def __init__(self, tokenizer: NllbTokenizer, ignore_index = -100, max_length = 128, src_lang = None, tgt_lang = None) -> None:
+        super().__init__(tokenizer, ignore_index, max_length)
+
+        self.src_lang = src_lang
+        self.tgt_lang = tgt_lang
+
+    def __call__(self, batch: list) -> dict:
+        if self.src_lang == 'rus_Cyrl' and self.tgt_lang == 'mansi_Cyrl':
+            langs = LANGS
+        elif self.src_lang == 'mansi_Cyrl' and self.tgt_lang == 'rus_Cyrl':
+            langs = LANGS[::-1]
+        else:
+            raise ValueError("Not valid src_lang and tgt_lang")
+        
+        return self.pad_batch(batch, langs)
 
 
 class TestCollateFn():

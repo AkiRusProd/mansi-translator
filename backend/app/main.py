@@ -29,6 +29,7 @@ app.add_middleware(
     allow_headers=["*"],  # Разрешите все заголовки
 )
 
+
 app.add_exception_handler(RequestValidationError, validation_exception_handler)
 app.add_exception_handler(Exception, python_exception_handler)
 
@@ -65,13 +66,14 @@ async def translate(request: TranslationRequest):
     logger.info(f"Sending translated text: {translated_text}")
     return {"translated_text": translated_text}
 
+
 # model = AutoModelForSeq2SeqLM.from_pretrained("re-init/model/nllb-200-distilled-600M")
 # tokenizer = NllbTokenizer.from_pretrained("re-init/tokenizer/nllb-200-distilled-600M")
 
-# GPU loading
+# GPU ckpt loading
 # model = LightningModel.load_from_checkpoint(models/checkpoint/last.ckpt)
 
-# CPU loading
+# CPU ckpt loading
 # ckpt = torch.load('models/checkpoint/last.ckpt', map_location=torch.device("cpu"))
 # model = LightningModel(model, tokenizer)
 # model.load_state_dict(ckpt['state_dict'])
