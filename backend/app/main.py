@@ -1,16 +1,16 @@
-import torch
 import logging
+
 from fastapi import FastAPI
-from models.scripts.train_model import LightningModel
-from transformers import AutoModelForSeq2SeqLM, NllbTokenizer
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from fastapi.logger import logger
-from backend.app.schema import TranslationRequest, TranslationResponse, ErrorResponse
-from backend.app.utils import preproc
-from backend.app.exception_handler import validation_exception_handler, python_exception_handler
-from backend.app.config import CONFIG
+from fastapi.middleware.cors import CORSMiddleware
+from transformers import AutoModelForSeq2SeqLM, NllbTokenizer
 
+from backend.app.config import CONFIG
+from backend.app.exception_handler import python_exception_handler, validation_exception_handler
+from backend.app.schema import ErrorResponse, TranslationRequest, TranslationResponse
+from backend.app.utils import preproc
+from models.scripts.train_model import LightningModel
 
 app = FastAPI(
     title="Rus-mansi and mansi-rus translator",

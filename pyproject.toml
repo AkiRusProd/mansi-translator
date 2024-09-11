@@ -24,6 +24,44 @@ uvicorn = "^0.30.6"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.6.3"
+pre-commit = "^3.7.1"
+mypy = "^1.10.0"
+types-requests = "^2.32.0.20240602"
+ipykernel = "^6.29.5"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+exclude = [".venv", "tests", "research", "data"]
+
+[tool.ruff.lint]
+ignore = ["RUF002", "RUF003", "T201", "ERA001", "FBT002", "FBT001", "A001", "C901", "S403", "S301", "RUF001"]
+fixable = ["I", "B", "RUF", "F"]
+select = [
+    "I",     # Isort rules
+    "C90",   # Maccabe complexity
+    "ASYNC", # flake8-async
+    "S",     #  flake8-bandit
+    "BLE",   # flake8-blind-except
+    "B",     # flake8-bugbear
+    "A",     # flake8-builtins
+    "C4",    # flake8-comprehensions
+    "T20",   # flake8-print
+    # "RET",   # flake8-return
+    "SLF", # flake8-self
+    "RUF", # ruff
+    "ERA", # eradicate
+    "PTH", # flake8-use-pathlib
+    "FBT", # flake8-boolean-trap
+    "F",   # pyflakes
+]
+preview = true
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["E402", "F403"]
+
+[tool.mypy]
+exclude = [".venv", "tests", "research", "data"]
 
 [build-system]
 requires = ["poetry-core"]

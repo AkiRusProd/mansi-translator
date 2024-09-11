@@ -1,13 +1,15 @@
 
-from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning import Trainer
-from transformers import  AutoModelForSeq2SeqLM, NllbTokenizer
+from typing import Optional, Union
+
 import pandas as pd
 import typer
-from typing import Optional, Union
-from models.scripts.dataset import ThisDataset, TestCollateFn
-from models.scripts.train_model import LightningModel
+from pytorch_lightning import Trainer
+from pytorch_lightning.loggers import TensorBoardLogger
 from torch.utils.data import DataLoader
+from transformers import AutoModelForSeq2SeqLM, NllbTokenizer
+
+from models.scripts.dataset import TestCollateFn, ThisDataset
+from models.scripts.train_model import LightningModel
 
 """
 python -m models.scripts.test_model

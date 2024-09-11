@@ -1,13 +1,15 @@
 from collections import Counter
+
+import pandas as pd
 import sentencepiece as spm
 from sentencepiece import sentencepiece_model_pb2 as sp_pb2_model
+from tqdm import tqdm
+
 # At this step, the code may throw an error about protobuf. Do as it tells.
 from transformers import NllbTokenizer
-from tqdm import tqdm
-import pandas as pd
 
 from models.scripts.dataset import preproc
- 
+
 # TODO: REFACTOR THIS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 df = pd.read_csv("data/cleared_v2.csv")
