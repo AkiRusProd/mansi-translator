@@ -6,10 +6,10 @@ from transformers import AutoModelForSeq2SeqLM, NllbTokenizer
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from fastapi.logger import logger
-from schema import TranslationRequest, TranslationResponse, ErrorResponse
-from utils import preproc
-from exception_handler import validation_exception_handler, python_exception_handler
-from config import CONFIG
+from backend.app.schema import TranslationRequest, TranslationResponse, ErrorResponse
+from backend.app.utils import preproc
+from backend.app.exception_handler import validation_exception_handler, python_exception_handler
+from backend.app.config import CONFIG
 
 
 app = FastAPI(
@@ -51,20 +51,19 @@ def on_startup() -> None:
 
 
 @app.post("/translate", responses={
-    200: TranslationResponse,
-    422: ErrorResponse,
-    500: ErrorResponse
+    200: {"model": TranslationResponse},
+    422: {"model": ErrorResponse},
+    500: {"model": ErrorResponse}
 })
 async def translate(request: TranslationRequest):
     logger.info(f"Received request: {request}")
     translated_text = app.package['model'].predict(
         preproc(request.text),
-        request.source_lang, 
+        request.source_lang,
         request.target_lang
     )[0]
     logger.info(f"Sending translated text: {translated_text}")
-    return TranslationResponse(translated_text=translated_text)
-
+    return {"translated_text": translated_text}
 
 # model = AutoModelForSeq2SeqLM.from_pretrained("re-init/model/nllb-200-distilled-600M")
 # tokenizer = NllbTokenizer.from_pretrained("re-init/tokenizer/nllb-200-distilled-600M")
@@ -81,13 +80,12 @@ async def translate(request: TranslationRequest):
 # TODO: Refactor this
 
 on_startup()
-
 if __name__ == "__main__":
-    # uvicorn backend.app.main:app --reload
+    # uvicorn backend.app.main:app --reload --log-config backend/app/log.ini
 
     import uvicorn
     uvicorn.run(
-        app,
+        "main:app",
         port=CONFIG['FASTAPI_PORT'],
         reload=True,
         log_config="log.ini"

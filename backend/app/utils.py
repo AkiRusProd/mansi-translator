@@ -22,7 +22,7 @@ REPLACE_TABLE = {
     '\\': ''
 }
 
-async def preproc(text: str) -> str:
+def preproc(text: str) -> str:
     """Function for text preprocessing
     before sending to the model
     Args:

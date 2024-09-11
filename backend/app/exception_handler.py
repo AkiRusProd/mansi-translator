@@ -6,7 +6,7 @@ from fastapi import Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from config import CONFIG
+from backend.app.config import CONFIG
 
 def get_error_response(request, exc) -> dict:
     """

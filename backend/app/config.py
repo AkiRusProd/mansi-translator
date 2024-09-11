@@ -35,7 +35,7 @@ def get_config() -> dict:
     ENV = ENV or 'development'
 
     # raise error if environment is not expected
-    if not ENV in ENV_CONFIG.keys():
+    if ENV not in ENV_CONFIG.keys():
         raise EnvironmentError(f'Config for envirnoment {ENV} not found')
 
     config = GLOBAL_CONFIG.copy()
