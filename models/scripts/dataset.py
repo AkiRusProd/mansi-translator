@@ -1,13 +1,14 @@
-import unicodedata
-import pandas as pd
-import re
-import typing as tp
-import sys
-from torch.utils.data import Dataset
 import random
-from sacremoses import MosesPunctNormalizer
-from transformers import NllbTokenizer
+import re
+import sys
+import typing as tp
+import unicodedata
 from pathlib import Path
+
+import pandas as pd
+from sacremoses import MosesPunctNormalizer
+from torch.utils.data import Dataset
+from transformers import NllbTokenizer
 
 # TODO: Refactor this
 

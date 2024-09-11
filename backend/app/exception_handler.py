@@ -1,12 +1,13 @@
 import json
 import traceback
 
-from fastapi.logger import logger
 from fastapi import Request, status
 from fastapi.exceptions import RequestValidationError
+from fastapi.logger import logger
 from fastapi.responses import JSONResponse
 
 from backend.app.config import CONFIG
+
 
 def get_error_response(request, exc) -> dict:
     """
@@ -29,7 +30,7 @@ def get_error_response(request, exc) -> dict:
     return error_response
 
 # @router.exception_handler(RequestValidationError)
-async def validation_exception_handler(request: Request, exc: RequestValidationError):
+def validation_exception_handler(request: Request, exc: RequestValidationError):
     """
     Handling error in validating requests
     """
@@ -40,7 +41,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 
 # @router.exception_handler(Exception)
-async def python_exception_handler(request: Request, exc: Exception):
+def python_exception_handler(request: Request, exc: Exception):
     """
     Handling any internal error
     """

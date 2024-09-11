@@ -1,8 +1,10 @@
-import torch
-from models.scripts.train_model import LightningModel
-import typer
 from typing import Optional, Union
+
+import torch
+import typer
 from transformers import AutoModelForSeq2SeqLM, NllbTokenizer
+
+from models.scripts.train_model import LightningModel
 
 """
 python -m models.scripts.predict_model
