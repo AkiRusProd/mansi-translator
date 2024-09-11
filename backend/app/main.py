@@ -1,12 +1,26 @@
 import torch
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+import logging
+from fastapi import FastAPI
 from models.scripts.train_model import LightningModel
 from transformers import AutoModelForSeq2SeqLM, NllbTokenizer
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.exceptions import RequestValidationError
+from fastapi.logger import logger
+from backend.app.schema import TranslationRequest, TranslationResponse, ErrorResponse
+from backend.app.utils import preproc
+from backend.app.exception_handler import validation_exception_handler, python_exception_handler
+from backend.app.config import CONFIG
 
 
-app = FastAPI()
+app = FastAPI(
+    title="Rus-mansi and mansi-rus translator",
+    description="Translator from russian to mansi and back based on NLLB model",
+    version="0.7.0",
+    terms_of_service=None,
+    contact=None,
+    license_info=None
+)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Разрешите конкретный источник
@@ -16,27 +30,41 @@ app.add_middleware(
 )
 
 
-class TranslationRequest(BaseModel):
-    text: str
-    source_lang: str = "mansi_Cyrl"
-    target_lang: str = "rus_Cyrl"
+app.add_exception_handler(RequestValidationError, validation_exception_handler)
+app.add_exception_handler(Exception, python_exception_handler)
+
+def on_startup() -> None:
+    global app
+    logger.info(f"Running envirnoment: {CONFIG['ENV']}")
+    logger.info(f"PyTorch using device: {CONFIG['DEVICE']}")
+
+    model = AutoModelForSeq2SeqLM.from_pretrained(CONFIG['model_path']).to(CONFIG['DEVICE'])
+    tokenizer = NllbTokenizer.from_pretrained(
+        CONFIG['tokenizer']['path'],
+        vocab_file=CONFIG['tokenizer']['vocab_path']
+    ) #check this
+
+    model = LightningModel(model, tokenizer)
+
+    app.package = {
+        "model": model
+    }
 
 
-class TranslationResponse(BaseModel):
-    translated_text: str
-
-@app.post("/translate", response_model = TranslationResponse)
-async def  translate(request: TranslationRequest):
-    print(request)
-    try:
-        translated_text = model.predict(request.text, request.source_lang, request.target_lang)[0]
-        return TranslationResponse(translated_text=translated_text)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-
-
+@app.post("/translate", responses={
+    200: {"model": TranslationResponse},
+    422: {"model": ErrorResponse},
+    500: {"model": ErrorResponse}
+})
+async def translate(request: TranslationRequest):
+    logger.info(f"Received request: {request}")
+    translated_text = app.package['model'].predict(
+        preproc(request.text),
+        request.source_lang,
+        request.target_lang
+    )[0]
+    logger.info(f"Sending translated text: {translated_text}")
+    return {"translated_text": translated_text}
 
 
 # model = AutoModelForSeq2SeqLM.from_pretrained("re-init/model/nllb-200-distilled-600M")
@@ -53,14 +81,22 @@ async def  translate(request: TranslationRequest):
 
 # TODO: Refactor this
 
-model = AutoModelForSeq2SeqLM.from_pretrained("models/pretrained/nllb-rus-mansi-v2_1_80k_steps").to("cuda:0")
-tokenizer = NllbTokenizer.from_pretrained("models/pretrained/nllb-rus-mansi-v2_1_80k_steps",  vocab_file = "models/pretrained/nllb-rus-mansi-v2_1_80k_steps/sentencepiece.bpe.model") #check this
-
-model = LightningModel(model, tokenizer)
-
-
+on_startup()
 if __name__ == "__main__":
-    # uvicorn backend.app.main:app --reload
+    # uvicorn backend.app.main:app --reload --log-config backend/app/log.ini
 
     import uvicorn
-    uvicorn.run(app)
+    uvicorn.run(
+        "main:app",
+        port=CONFIG['FASTAPI_PORT'],
+        reload=True,
+        log_config="log.ini"
+    )
+else:
+    # Configure logging if main.py executed from start.sh
+    gunicorn_error_logger = logging.getLogger("gunicorn.error")
+    gunicorn_logger = logging.getLogger("gunicorn")
+    uvicorn_access_logger = logging.getLogger("uvicorn.access")
+    uvicorn_access_logger.handlers = gunicorn_error_logger.handlers
+    logger.handlers = gunicorn_error_logger.handlers
+    logger.setLevel(gunicorn_logger.level)
