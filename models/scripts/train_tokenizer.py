@@ -2,7 +2,7 @@ from collections import Counter
 import sentencepiece as spm
 from sentencepiece import sentencepiece_model_pb2 as sp_pb2_model
 # At this step, the code may throw an error about protobuf. Do as it tells.
-from transformers import NllbTokenizer, AutoModelForSeq2SeqLM
+from transformers import NllbTokenizer
 from tqdm import tqdm
 import pandas as pd
 
@@ -10,17 +10,11 @@ from models.scripts.dataset import preproc
  
 # TODO: REFACTOR THIS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-df_train_mansi = pd.read_csv("data/cleared_v2.csv")
-
-df_train_mansi = df_train_mansi.rename(columns={ # TODO: This is bulshit, remove it
-    'target': 'mansi',
-    'source': 'ru'
-})
-
+df = pd.read_csv("data/cleared_v2.csv")
  
 print("Creating corpus and counting chars in it")
 # creating corpus
-all_texts = df_train_mansi["mansi"].dropna().tolist()
+all_texts = df["mansi"].dropna().tolist()
 all_text_normalized = [preproc(t) for t in tqdm(all_texts)]
  
 # counting characters
@@ -86,25 +80,3 @@ for p in added_spm.pieces:
 NEW_SPM_NAME = 'spm_nllb_mansi_268k.model'
 with open(NEW_SPM_NAME, 'wb') as f:
     f.write(old_spm.SerializeToString())
- 
- 
-# loading the tokenizers
-print("Reloading default NLLB tokenizer to ours and resizing model")
-model_name = 'facebook/nllb-200-distilled-600M'
-tokenizer_old = NllbTokenizer.from_pretrained(model_name)
-tokenizer = NllbTokenizer.from_pretrained(model_name, vocab_file=NEW_SPM_NAME)
-print(len(tokenizer_old), len(tokenizer)) # 256204, 268559
-added_vocab = set(tokenizer.get_vocab()).difference(set(tokenizer_old.get_vocab()))
-print(len(added_vocab))  # 12355
- 
-# loading and resizing the model
-model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
-model.resize_token_embeddings(len(tokenizer))
- 
-# re-initializing the new embeddings
-for t in tqdm(added_vocab):
-    tt = tokenizer_old(t, add_special_tokens=False).input_ids
-    if len(tt) == 0:
-        tt = [tokenizer_old.unk_token_id]
-    idx = tokenizer.convert_tokens_to_ids(t)
-    model.model.shared.weight.data[idx] = model.model.shared.weight.data[tt].mean(0)
