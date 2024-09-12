@@ -1,4 +1,5 @@
 import logging
+import time
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -8,11 +9,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from transformers import AutoModelForSeq2SeqLM, NllbTokenizer
 
 from backend.app.config import CONFIG
+from backend.app.db.db_utils import *
 from backend.app.exception_handler import python_exception_handler, validation_exception_handler
 from backend.app.schema import *
-from backend.app.db.db_utils import *
 from backend.app.utils import preproc
 from models.scripts.train_model import LightningModel
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -80,6 +82,9 @@ async def on_startup() -> None:
 })
 async def translate(request: TranslationRequest):
     logger.info(f"Received request for translation: {request}")
+
+    start_time = time.time()
+
     text = preproc(request.text, CONFIG['CHANGE_MACRONS'])
     logger.info(f"Text after preproc: {text}")
     translated_text = app.package['model'].predict(
@@ -87,8 +92,13 @@ async def translate(request: TranslationRequest):
         request.source_lang,
         request.target_lang
     )[0]
+
+    elapsed_time = round(time.time() - start_time, 2)
+    text_len = len(translated_text)
+    chars_per_sec = round(text_len/elapsed_time, 2)
+
     logger.info(f"Sending translated text: {translated_text}")
-    return {"translated_text": translated_text}
+    return {"translated_text": translated_text, "text_len": text_len, "elapsed_time": elapsed_time, "chars_per_sec": chars_per_sec}
 
 @app.post("/process", responses={
     200: {"model": ProcessResponse},
