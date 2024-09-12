@@ -38,6 +38,70 @@ class ProcessResponse(BaseModel):
         example='Текст текст'
     )
 
+class RateRequest(BaseModel):
+    source_lng: str = Field(
+        ...,
+        description='Source language',
+        example='rus'
+    )
+    target_lng: str = Field(
+        ...,
+        description='Target language',
+        example='mansi'
+    )
+    source_txt: str = Field(
+        ...,
+        description='Source text',
+        example='текст'
+    )
+    translated_txt: str = Field(
+        ...,
+        description='Translated text',
+        example='тēкст'
+    )
+    page_lng: str = Field(
+        ...,
+        description='Current page language',
+        example='rus'
+    )
+    rating: int = Field(
+        ...,
+        description='Translation rating according to the user',
+        example='1'
+    )
+
+class ImproveRequest(BaseModel):
+    source_lng: str = Field(
+        ...,
+        description='Source language',
+        example='rus'
+    )
+    target_lng: str = Field(
+        ...,
+        description='Target language',
+        example='mansi'
+    )
+    source_txt: str = Field(
+        ...,
+        description='Source text',
+        example='текст'
+    )
+    translated_txt_our: str = Field(
+        ...,
+        description='Translated text by system',
+        example='ткст'
+    )
+    translated_txt_user: str = Field(
+        ...,
+        description='Translation suggested by user',
+        example='тēкст'
+    )
+    page_lng: str = Field(
+        ...,
+        description='Current page language',
+        example='rus'
+    )
+
 class ErrorResponse(BaseModel):
     """
     Error response for the API
