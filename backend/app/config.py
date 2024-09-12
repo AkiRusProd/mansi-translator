@@ -12,7 +12,7 @@ GLOBAL_CONFIG = {
     'USE_CUDA_IF_AVAILABLE': True,
     'CUDA_DEVICE': 'cuda:0',
     'FASTAPI_PORT': 8000,
-    'CLIENT_URL': None, # for CORS in production
+    'CLIENT_URL': "*", # for CORS in production
     'CHANGE_MACRONS': True
 }
 
