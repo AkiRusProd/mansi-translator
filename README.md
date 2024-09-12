@@ -28,6 +28,8 @@ project-root/
 
 ## Запуск
 
+Конфигурационные параметры: [backend/app/config.py](backend/app/config.py)
+
 ### Установка зависимостей
 ```bash
 pip intall poetry
