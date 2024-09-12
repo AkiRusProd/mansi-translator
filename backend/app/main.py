@@ -8,26 +8,41 @@ from transformers import AutoModelForSeq2SeqLM, NllbTokenizer
 
 from backend.app.config import CONFIG
 from backend.app.exception_handler import python_exception_handler, validation_exception_handler
-from backend.app.schema import ErrorResponse, TranslationRequest, TranslationResponse
+from backend.app.schema import (
+    ErrorResponse,
+    TranslationRequest,
+    TranslationResponse,
+    ProcessRequest,
+    ProcessResponse
+)
 from backend.app.utils import preproc
 from models.scripts.train_model import LightningModel
 
 app = FastAPI(
     title="Rus-mansi and mansi-rus translator",
     description="Translator from russian to mansi and back based on NLLB model",
-    version="0.7.0",
+    version="0.8.0",
     terms_of_service=None,
     contact=None,
     license_info=None
 )
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Разрешите конкретный источник
-    allow_credentials=True,
-    allow_methods=["*"],  # Разрешите все методы (POST, GET и т.д.)
-    allow_headers=["*"],  # Разрешите все заголовки
-)
+if CONFIG['ENV'] == 'development':
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],  # Разрешите конкретный источник
+        allow_credentials=True,
+        allow_methods=["*"],  # Разрешите все методы (POST, GET и т.д.)
+        allow_headers=["*"],  # Разрешите все заголовки
+    )
+else:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[CONFIG['CLIENT_URL']],  # Разрешите конкретный источник
+        allow_credentials=True,
+        allow_methods=["POST"],  # Разрешите все методы (POST, GET и т.д.)
+        allow_headers=["*"],  # Разрешите все заголовки
+    )
 
 
 app.add_exception_handler(RequestValidationError, validation_exception_handler)
@@ -57,15 +72,33 @@ def on_startup() -> None:
     500: {"model": ErrorResponse}
 })
 async def translate(request: TranslationRequest):
-    logger.info(f"Received request: {request}")
+    logger.info(f"Received request for translation: {request}")
     translated_text = app.package['model'].predict(
-        preproc(request.text),
+        preproc(request.text, CONFIG['CHANGE_MACRONS']),
         request.source_lang,
         request.target_lang
     )[0]
     logger.info(f"Sending translated text: {translated_text}")
     return {"translated_text": translated_text}
 
+@app.post("/process", responses={
+    200: {"model": ProcessResponse},
+    422: {"model": ErrorResponse},
+    500: {"model": ErrorResponse}
+})
+async def process(request: ProcessRequest):
+    logger.info(
+        "Received request for processing: "
+        f"data type = {type(request.data)}, "
+        f"data length = {len(request.data)}"
+    )
+    processed_data = preproc(request.data, CONFIG['CHANGE_MACRONS'])
+    logger.info(
+        "Sending processed data: "
+        f"data type = {type(processed_data)}, "
+        f"data length = {len(processed_data)}"
+    )
+    return {"processed_data": processed_data}
 
 # model = AutoModelForSeq2SeqLM.from_pretrained("re-init/model/nllb-200-distilled-600M")
 # tokenizer = NllbTokenizer.from_pretrained("re-init/tokenizer/nllb-200-distilled-600M")
