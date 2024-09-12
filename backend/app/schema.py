@@ -1,4 +1,5 @@
-from typing import Literal, Union, List
+from typing import List, Literal, Union
+
 from pydantic import BaseModel, Field
 
 
@@ -22,6 +23,18 @@ class TranslationResponse(BaseModel):
         ...,
         description='Text translated to target language',
         example='Привёз её домой'
+    )
+    text_len: int = Field(
+        ...,
+        description="Text length in chars"
+    )
+    elapsed_time: float = Field(
+        ...,
+        description="Time in seconds elapsed for text generation"
+    )
+    chars_per_sec: float = Field(
+        ...,
+        description="Characters per second"
     )
 
 class ProcessRequest(BaseModel):

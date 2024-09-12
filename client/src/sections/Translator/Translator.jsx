@@ -15,6 +15,8 @@ const addSymb = {
   ]
 }
 
+const SHOW_SECS = false
+
 const textLayout = {
   'rus': {
     'rus': 'Русский',
@@ -33,7 +35,9 @@ const textLayout = {
     'thankyou-improve': 'Спасибо за обратную связь!',
     'source_text': 'Исходный текст',
     'your_translation': 'Ваш перевод',
-    'enter_your_translation': 'Введите свой перевод'
+    'enter_your_translation': 'Введите свой перевод',
+    'symb_per_sec': 'Символов в секунду',
+    'total_sec': 'Затрачено времени'
 
   },
   'mansi': {
@@ -53,7 +57,9 @@ const textLayout = {
     'thankyou-improve': 'Пӯмасӣпа наӈын ювле о̄лнэ магсыл!',
     'source_text': 'Тэ̄рнэ потыр',
     'your_translation': 'На̄н толмащлан на̄н',
-    'enter_your_translation': 'Наӈки толмасьлан ла̄тыӈ хӯлтэн'
+    'enter_your_translation': 'Наӈки толмасьлан ла̄тыӈ хӯлтэн',
+    'symb_per_sec': 'Символыт секунда',
+    'total_sec': 'Ка̄ста̄лнэ щё̄с'
   }
 }
 
@@ -73,6 +79,7 @@ const Translator = () => {
   const [translationText, setTranslationText] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [sourceText, setSourceText] = useState('')
+  const [techData, setTechData] = useState(null)
   const [symbType, setSymbType] = useState('lower')
   const [pageLanguage, setPageLanguage] = useState('rus')
   const [isRating, setIsRating] = useState(false)
@@ -84,9 +91,9 @@ const Translator = () => {
     let target = targetLng.slice()
     setSourceLng(target)
     setTargetLng(src)
-    if (translationText.length > 0) {
+    if (String(translationText).length > 0) {
       setIsLoading(true)
-      let src_text = translationText.slice()
+      let src_text = String(translationText).slice()
       setSourceText(src_text)
       sendTranslation(src_text, target, src)
     }
@@ -157,6 +164,7 @@ const Translator = () => {
       const translation = await translate(data);
       //const translation = {translated_text: 'new text' + text}
       setTranslationText(translation.translated_text)
+      setTechData(translation)
     } catch (error) {
       console.error('Error translating text:', error)
     } finally {
@@ -275,8 +283,20 @@ const Translator = () => {
 
           <div class={classes["translate-buttons"]}>
               <div class={classes["left"]}>
-                  {/* <button id={classes["translate"]}>Перевести</button>
-                  <button id={classes["swap-languages"]}>Поменять языки</button> */}
+                {
+                  (!!techData & SHOW_SECS) ? (
+                    <>
+                      <div>
+                        <p>{textLayout[pageLanguage]['total_sec']}:</p>
+                        <p>{techData.elapsed_time} сек.</p> 
+                      </div>
+                      <div> 
+                      <p>{textLayout[pageLanguage]['symb_per_sec']}:</p>
+                      <p>{techData.chars_per_sec} сек.</p> 
+                      </div>
+                    </>
+                  ) : ('')
+                }
               </div>
               <div class={classes["right"]}>
                   <button id={classes["rate"]} onClick={() => setIsRating(true)}>

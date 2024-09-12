@@ -1,6 +1,6 @@
 import React from 'react';
 import './styles/sections.css'
-
+ 
 
 const Loading = (props) => {
   const height = props.height || '100vh'
