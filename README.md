@@ -3,22 +3,26 @@
 ## Структура репозитория
 
 ```plaintext
-project-root/
-├── data/                   # Данные для обучения и тестирования моделей
-│   ├── raw/                # Исходные данные
-│   ├── processed/          # Обработанные данные (например, токенизированные, нормализованные)
+mansi-translator/
+├── data/                   # Данные для обучения и тестирования моделей (а также ноутбуки по их обработке)
+│   ├── cleared_v1.1/       # Исходные очищенные данные (тексты очищены от мусорных символов)
+│   ├── cleared_v2/         # V1 с переставлеными местами языками, где необходимо
+│   ├── cleared_v3/         # V2 + доп предложения (около 40к)
+│   └── cleared_v3.1/       # V2 + доп предложения, выравненные по-другому
 ├── models/                 # Сохраненные модели и скрипты для их обучения
 │   ├── checkpoints/        # Промежуточные состояния моделей
 │   ├── scripts/            # Скрипты для обучения и инференса
 │   └── pretrained/         # Предобученные модели, если используете
 ├── research/               # Jupyter/Colab ноутбуки для экспериментов и анализа
 ├── backend/                # Код для backend на FastAPI
-│   ├── app/                # Основные модули FastAPI
-│   ├── utils/              # Утилиты и вспомогательные функции
-│   └── tests/              # Тесты для backend (по мере необходимости)
-├── frontend/               # Код для frontend (например, Gradio)
-│   ├── assets/             # Статические файлы, изображения, CSS
-│   └── tests/              # Тесты для frontend (по мере необходимости)
+│   └── app/                # Основные модули FastAPI
+|       │── db/             # БД, куда сохраняется фидбек от пользователей
+|       └── logs/           # папка для логов
+├── frontend/               # Код для frontend (React.js)
+│ └── src/
+│     │── http/             # Настройки axios для связи с бэкендом
+│     │── routes/           # Общие настройки клиентской части
+│     └── sections/         # Оформление страниц сайта (404, главная страница)
 ├── scripts/                # Скрипты для автоматизации (деплой, настройка окружения и т.д.)
 ├── pyproject.toml          # Зависимости для проекта (poetry)
 ├── README.md               # Описание проекта, как настроить и запустить
@@ -30,24 +34,102 @@ project-root/
 
 Конфигурационные параметры: [backend/app/config.py](backend/app/config.py)
 
-### Установка зависимостей
+Основные параметры
+- model_path - путь папке с весами и конфигом модели
+- tokenizer path - путь папке с конфигом токенизатора
+- tokenizer vocab_path - путь к файлу sentencepiece .bpe для токенизатора
+- FASTAPI_PORT - по дефолту 8000, если изменили тут - надо изменить и в client/src/http/axios.js 3 строчка
+- USE_CUDA_IF_AVAILABLE - использовать ли cuda, если доступно
+- CHANGE_MACRONS - заменять ли все символы с долготами на их аналоги из кириллицы с доп символом (зависит от модели)
+- Для работы в проде выставить переменную окружения ```PYTHON_ENV="production"``` (отключается traceback при возврате ответа с бэка при возникновении ошибки)
+
+### Установка необходимых модулей
+
+1. Backend
+   
 ```bash
 pip intall poetry
 poetry install
 ```
+2. Frontend
+  - Node.js https://nodejs.org/en/download/package-manager
+  - Create-react-app ```npm i create-react-app```
 
-### Frontend
+### Запуск frontend
+
+- Локальное развертывание (можно установить переменную окружения ```PORT``` для смены порта, по дефолту стоит 3000)
 ```bash
 cd client
 npm install
 npm start
 ```
-### Backend
+
+- Вывод фронта вовне
+  1. Установка пакетов и создание билда
+    ```bash
+    cd client
+    npm install # если не сделали до этого
+    npm run build
+    ```
+  2. Установка nginx
+    ```bash
+    sudo apt update
+    sudo apt install nginx
+    ```
+  4. Создание конфиг файла для nginx
+    ```bash
+    sudo nano /etc/nginx/sites-available/react_app
+    ```
+     Содержание файла:
+    ```
+    server {
+        listen 80; # или замените на нужный вам порт
+      
+        server_name your_domain_or_ip; # укажите IP-адрес сервера или домен
+      
+        root /path/to/your/react/build; # путь к папке build React приложения
+        index index.html;
+      
+        location / {
+            try_files $uri /index.html;
+        }
+    
+        location /api/ { # для обращения к бэкенду
+            proxy_pass http://127.0.0.1:8000; # здесь нужно указать порт бэкенда
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+        
+        error_page 500 502 503 504 /50x.html;
+        location = /50x.html {
+            root /usr/share/nginx/html;
+        }
+    }
+    ```
+  6. Создание символической ссылки
+    ```bash
+    sudo ln -s /etc/nginx/sites-available/react_app /etc/nginx/sites-enabled/
+    ```
+  7. Проверка корректности конфига Nginx
+    ```bash
+    sudo nginx -t
+    ```
+  8. Перезапуск Nginx
+    ```bash
+    sudo systemctl restart nginx
+    ```
+     
+
+
+### Запуск backend
+Выполнять команду из корня репозитория (mansi-translator/)
 ```bash
 uvicorn backend.app.main:app --reload --log-config backend/app/log.ini
 ```
 
-После запуска веб-интерфейс будет доступен по адресу http://localhost:3000/
+После запуска веб-интерфейс будет доступен по адресу http://localhost:3000/ (локально) или по http://server_ip:80 (внешне)
 
 # Памятка для разработчиков
 
