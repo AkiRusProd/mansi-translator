@@ -1,5 +1,4 @@
-from typing import Literal
-
+from typing import Literal, Union, List
 from pydantic import BaseModel, Field
 
 
@@ -23,6 +22,20 @@ class TranslationResponse(BaseModel):
         ...,
         description='Text translated to target language',
         example='Привёз её домой'
+    )
+
+class ProcessRequest(BaseModel):
+    data: Union[List[str], str] = Field(
+        ...,
+        description='Text or list of texts to process',
+        example='  Текст  текст  '
+    )
+
+class ProcessResponse(BaseModel):
+    processed_data: Union[List[str], str] = Field(
+        ...,
+        description='Processed text (str) or texts (list), depending on request',
+        example='Текст текст'
     )
 
 class ErrorResponse(BaseModel):
