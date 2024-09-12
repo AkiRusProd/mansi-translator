@@ -6,7 +6,7 @@ export const translate = async (data) => {
         const response = await guestInstance.post('translate', data)
         return response.data
     } catch (e) {
-        alert("Error")
+        alert("Ошибка. Повторите запрос позже")
         return false
     }
 }

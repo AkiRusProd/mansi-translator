@@ -5,14 +5,14 @@ from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.logger import logger
 from fastapi.middleware.cors import CORSMiddleware
-from transformers import AutoModelForSeq2SeqLM, NllbTokenizer
+#from transformers import AutoModelForSeq2SeqLM, NllbTokenizer
 
 from backend.app.config import CONFIG
 from backend.app.exception_handler import python_exception_handler, validation_exception_handler
 from backend.app.schema import *
 from backend.app.db.db_utils import *
 from backend.app.utils import preproc
-from models.scripts.train_model import LightningModel
+#from models.scripts.train_model import LightningModel
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -59,16 +59,16 @@ async def on_startup() -> None:
     logger.info(f"Running envirnoment: {CONFIG['ENV']}")
     logger.info(f"PyTorch using device: {CONFIG['DEVICE']}")
 
-    model = AutoModelForSeq2SeqLM.from_pretrained(CONFIG['model_path']).to(CONFIG['DEVICE'])
-    tokenizer = NllbTokenizer.from_pretrained(
-        CONFIG['tokenizer']['path'],
-        vocab_file=CONFIG['tokenizer']['vocab_path']
-    ) #check this
+    # model = AutoModelForSeq2SeqLM.from_pretrained(CONFIG['model_path']).to(CONFIG['DEVICE'])
+    # tokenizer = NllbTokenizer.from_pretrained(
+    #     CONFIG['tokenizer']['path'],
+    #     vocab_file=CONFIG['tokenizer']['vocab_path']
+    # ) #check this
 
-    model = LightningModel(model, tokenizer)
+    # model = LightningModel(model, tokenizer)
 
     app.package = {
-        "model": model,
+        # "model": model
         "connection": await db_init()
     }
 
@@ -82,11 +82,11 @@ async def translate(request: TranslationRequest):
     logger.info(f"Received request for translation: {request}")
     text = preproc(request.text, CONFIG['CHANGE_MACRONS'])
     logger.info(f"Text after preproc: {text}")
-    translated_text = app.package['model'].predict(
-        text,
-        request.source_lang,
-        request.target_lang
-    )[0]
+    translated_text = f"--{text}--" # app.package['model'].predict(
+    #     text,
+    #     request.source_lang,
+    #     request.target_lang
+    # )[0]
     logger.info(f"Sending translated text: {translated_text}")
     return {"translated_text": translated_text}
 
@@ -148,14 +148,15 @@ async def rate(request: ImproveRequest):
 # TODO: Refactor this
 
 if __name__ == "__main__":
-    # uvicorn backend.app.main:app --reload --log-config backend/app/log.ini
+    # uvicorn backend.app.test_main:app --reload --log-config backend/app/log.ini
 
     import uvicorn
     uvicorn.run(
         app,
         port=CONFIG['FASTAPI_PORT'],
         reload=True,
-        log_config="log.ini"
+        log_config="log.ini",
+        lifespan=lifespan
     )
 else:
     # Configure logging if main.py executed from start.sh

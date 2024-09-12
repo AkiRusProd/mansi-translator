@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Русско-Мансийский Переводчик</title>
+    <style>
+        /* @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap'); */
+        @import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&family=Lato:wght@700&display=swap');
+
+        /* Основные стили для страницы */
+        body {
+            font-family: 'Open Sans', sans-serif;
+            background-color: #f0f4f8; /* Светлый фон   #f0f4f8 */
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .modal-title, .input-output label {
+            font-family: 'Lato', sans-serif;
+            font-weight: 700; /* Используем Lato для заголовков */
+        }
+
+        .container {
+            width: 80%;
+            max-width: 1000px;
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 20px; /* Мягкое скругление */
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); /* Тени */
+        }
+
+        /* Стили для переключателей языков */
+        .language-toggle {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .language-toggle button {
+            background-color: #fff;
+            border: 2px solid #1D8D85; /* #5080ff */
+            padding: 10px 20px;
+            margin: 0 10px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .language-toggle button.active {
+            background-color: #1D8D85;  /* #5080ff */
+            color: white;
+        }
+
+        .language-toggle button:hover {
+            background-color: #167D75;  /* 3f6ad8 */
+            color: white;
+        }
+
+        /* Основной блок с полями для перевода */
+        .translate-area {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .input-output {
+            width: 48%;
+            padding: 20px;
+            border-radius: 15px;
+            background-color: #f9f9f9; /* Светлый фон поля */
+            border: 1px solid #d9e2ec;  /* d9e2ec */
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05); /* Лёгкая тень */
+        }
+
+        .input-output label {
+            font-weight: 600;  /* 500 */
+            margin-bottom: 10px;
+            display: block;
+            font-size: 1.1em;  /* 18px */
+            color: #334e68;  /*334e68 */;
+        }
+
+        textarea {
+            width: 100%;
+            height: 150px;
+            border: none;
+            background: transparent;
+            resize: none;
+            font-size: 16px;
+            font-family: inherit;
+            color: #334e68;  /* 334e68 */
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        textarea::placeholder {
+            color: #a1a9b2;  /* a1a9b2 */
+        }
+
+        .letter-buttons {
+            display: flex;
+            justify-content: flex-start;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .letter-buttons button {
+            background-color: #e5e9f1;  /* e5e9f1 */
+            border: none;
+            padding: 10px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 18px;
+            transition: background-color 0.3s ease;
+        }
+
+        .letter-buttons button:hover {
+            background-color: #1D8D85;  /* 5080ff */
+            color: white;
+        }
+
+        .divider {
+            height: 100%;
+            width: 2px;
+            background-color: #e0e6ed;  /* e0e6ed */
+        }
+
+        .translate-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+
+        .translate-buttons .left {
+            display: flex;
+            gap: 10px;
+        }
+
+        .translate-buttons button {
+            background-color: #1D8D85;  /* 5080ff */
+            border: none;
+            padding: 10px 25px;
+            border-radius: 20px;
+            cursor: pointer;
+            color: white;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .translate-buttons button:hover {
+            background-color: #167D75;  /* 3f6ad8 */
+        }
+
+        /* Модальные окна */
+        .rating-modal, .feedback-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .modal-title {
+            margin-bottom: 15px;
+            font-weight: 500;
+            font-size: 20px;
+            color: #334e68;  /* 334e68 */
+        }
+
+        .stars {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .stars button {
+            background-color: rgba(255, 255, 255, 0);
+            border: 2px solid black;
+            font-size: 20px;
+            cursor: pointer;
+            color: black;
+            border-radius: 20%;
+            padding: 10px;
+            transition: background-color 0.3s ease;
+        }
+
+        .stars button:hover, .stars button.active {
+            background-color: yellow;
+        }
+
+        /* Мобильные стили */
+        @media (max-width: 768px) {
+            .translate-area {
+                flex-direction: column;
+            }
+
+            .input-output {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+
+            .divider {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Переключатели для выбора языка -->
+    <div class="language-toggle">
+        <button id="russian" class="active">Русский</button>
+        <button id="mansi">Мāньси (Мансийский)</button>
+    </div>
+
+    <!-- Основная область с полями для перевода -->
+    <div class="translate-area">
+        <div class="input-output">
+            <label id="input-label">Русский</label>
+            <textarea placeholder="Введите текст"></textarea>
+            <div class="letter-buttons" id="mansi-letters" style="display: none;">
+                <button>ё̄</button><button>ӯ</button><button>ē</button><button>ӈ</button><button>ы̄</button>
+                <button>а̄</button><button>о̄</button><button>э̄</button><button>я̄</button><button>ӣ</button>
+                <button>ю̄</button>
+            </div>
+        </div>
+        <div class="divider"></div>
+        <div class="input-output">
+            <label id="output-label">Мансийский</label>
+            <textarea readonly placeholder="Здесь будет перевод"></textarea>
+        </div>
+    </div>
+
+    <!-- Кнопки перевода и смены языков -->
+    <div class="translate-buttons">
+        <div class="left">
+            <button id="translate">Перевести</button>
+            <button id="swap-languages">Поменять языки</button>
+        </div>
+        <div>
+            <button id="rate">Оценить перевод</button>
+            <button id="improve">Улучшить перевод</button>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для оценки перевода -->
+<div class="rating-modal" id="ratingModal">
+    <div class="modal-title">Оцените качество перевода</div>
+    <div class="stars">
+        <button>★</button><button>★</button><button>★</button><button>★</button><button>★</button>
+    </div>
+</div>
+
+<!-- Модальное окно для улучшения перевода -->
+<div class="feedback-modal" id="feedbackModal">
+    <div class="modal-title">Если перевод оказался некорректен, дайте нам знать</div>
+    <textarea placeholder="Введите ваши замечания здесь..."></textarea>
+    <div class="feedback-buttons">
+        <button id="closeFeedback">Закрыть</button>
+        <button id="sendFeedback">Отправить</button>
+    </div>
+</div>
+
+<script>
+// Сюда вставьте ваш скрипт без изменений
+    const russianButton = document.getElementById('russian');
+    const mansiButton = document.getElementById('mansi');
+    const inputLabel = document.getElementById('input-label');
+    const outputLabel = document.getElementById('output-label');
+    const mansiLetters = document.getElementById('mansi-letters');
+
+    const languageText = {
+        ru: {
+            input: "Русский",
+            output: "Мансийский",
+            translate: "Перевести",
+            swap: "Поменять языки",
+            rate: "Оценить перевод",
+            improve: "Улучшить перевод",
+            feedbackTitle: "Если перевод оказался некорректен, дайте нам знать",
+            send: "Отправить",
+            close: "Закрыть"
+        },
+        mansi: {
+            input: "Мāньси",
+            output: "Русский",
+            translate: "Транслейт",
+            swap: "Поменять языки",
+            rate: "Оценить перевод",
+            improve: "Улучшить перевод",
+            feedbackTitle: "Пелем перевод?",
+            send: "Отправить",
+            close: "Закрыть"
+        }
+    };
+
+    const updateLanguage = (lang) => {
+        inputLabel.innerText = languageText[lang].input;
+        outputLabel.innerText = languageText[lang].output;
+        document.getElementById('translate').innerText = languageText[lang].translate;
+        document.getElementById('swap-languages').innerText = languageText[lang].swap;
+        document.getElementById('rate').innerText = languageText[lang].rate
+        document.getElementById('improve').innerText = languageText[lang].improve;
+        document.querySelector('.feedback-modal .modal-title').innerText = languageText[lang].feedbackTitle;
+        document.getElementById('sendFeedback').innerText = languageText[lang].send;
+        document.getElementById('closeFeedback').innerText = languageText[lang].close;
+
+        // Показать или скрыть специальные символы для мансийского языка
+        if (lang === 'mansi') {
+            mansiLetters.style.display = 'flex';
+        } else {
+            mansiLetters.style.display = 'none';
+        }
+    };
+
+    // Переключение между русским и мансийским
+    russianButton.addEventListener('click', function() {
+        russianButton.classList.add('active');
+        mansiButton.classList.remove('active');
+        updateLanguage('ru');
+    });
+
+    mansiButton.addEventListener('click', function() {
+        mansiButton.classList.add('active');
+        russianButton.classList.remove('active');
+        updateLanguage('mansi');
+    });
+
+    // Логика для смены языков в полях ввода и вывода
+    const swapButton = document.getElementById('swap-languages');
+
+    swapButton.addEventListener('click', function() {
+        const inputText = inputLabel.innerText;
+        inputLabel.innerText = outputLabel.innerText;
+        outputLabel.innerText = inputText;
+
+        // Если язык ввода стал мансийским, показываем кнопки с мансийскими буквами
+        if (inputLabel.innerText === "Мансийский" || inputLabel.innerText === "Мāньси") {
+            mansiLetters.style.display = 'flex';
+        } else {
+            mansiLetters.style.display = 'none';
+        }
+    });
+
+
+    // Добавление функциональности специальных кнопок для мансийских символов
+    mansiLetters.querySelectorAll('button').forEach((button) => {
+        button.addEventListener('click', function(event) {
+            const textArea = document.querySelector('.input-output textarea');
+            const isShiftPressed = event.shiftKey;
+            const symbol = isShiftPressed ? button.innerText.toUpperCase() : button.innerText;
+            textArea.value += symbol;
+        });
+    });
+
+    // Открытие модального окна "Оценить перевод"
+    document.getElementById('rate').addEventListener('click', function() {
+        document.getElementById('ratingModal').style.display = 'block';
+    });
+
+    // Открытие модального окна "Улучшить перевод"
+    document.getElementById('improve').addEventListener('click', function() {
+        document.getElementById('feedbackModal').style.display = 'block';
+    });
+
+    // Закрытие модальных окон при клике вне их
+    window.onclick = function(event) {
+        const ratingModal = document.getElementById('ratingModal');
+        const feedbackModal = document.getElementById('feedbackModal');
+        if (event.target === ratingModal) {
+            ratingModal.style.display = 'none';
+        }
+        if (event.target === feedbackModal) {
+            feedbackModal.style.display = 'none';
+        }
+    };
+
+    // Закрытие окна "Улучшить перевод" кнопкой "Закрыть"
+    document.getElementById('closeFeedback').addEventListener('click', function() {
+        document.getElementById('feedbackModal').style.display = 'none';
+    });
+
+    // Отправка фидбэка кнопкой "Отправить"
+    document.getElementById('sendFeedback').addEventListener('click', function() {
+        // Логика отправки фидбэка
+        const feedbackText = document.querySelector('.feedback-modal textarea').value;
+        console.log("Отправка фидбэка: ", feedbackText); // Здесь должна быть логика отправки данных на сервер
+        document.getElementById('feedbackModal').style.display = 'none';
+    });
+
+    // Функция для оценки перевода (нажатие на звезды)
+    const stars = document.querySelectorAll('.stars button');
+    stars.forEach((star, index) => {
+        star.style.border = '1px solid black';  // Добавляем чёрный контур
+        star.style.backgroundColor = 'white';   // Белый фон по умолчанию
+        star.style.color = 'black';             // Чёрный цвет для контура звезды
+    
+        star.addEventListener('click', function() {
+            stars.forEach((s, i) => {
+                if (i <= index) {
+                    s.style.backgroundColor = 'yellow'; // Закрашиваем звёзды в жёлтый цвет
+                } else {
+                    s.style.backgroundColor = 'white'; // Остальные остаются белыми
+                }
+            });
+
+            // Отображаем сообщение "Спасибо за Вашу оценку!"
+            const ratingModal = document.getElementById('ratingModal');
+            ratingModal.innerHTML = `
+                <div class="modal-title">Спасибо за Вашу оценку!</div>
+                <button id="closeRating">Закрыть</button>
+            `;
+
+            // Обработчик закрытия окна
+            document.getElementById('closeRating').addEventListener('click', function() {
+                ratingModal.style.display = 'none';
+            });
+
+            console.log("Оценка: ", index + 1); // Логика отправки оценки
+        });
+    });
+</script>
+
+</body>
+</html>

@@ -1,162 +1,359 @@
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&family=Lato:wght@700&display=swap');
+
+/* Основные стили для страницы */
 #translator {
-    padding-top: 3em;
-    min-height: 100vh;
-    height: max-content;
-    padding-bottom: 2em;
+    font-family: 'Open Sans', sans-serif;
+    background-color: #f0f4f8; /* Светлый фон   #f0f4f8 */
+    margin: 0;
+    padding: 0;
     display: flex;
     justify-content: center;
     align-items: center;
-    flex-direction: column;
-    gap: 0em;
-    color: black;
-    text-align: center;
+    height: 100vh;
+}
+
+.swith-page-language {
+    position: absolute;
+    top: 5%;
+    right: 5%;
 }
 
 
-.main {
-    width: 75em;
-    padding: 2em;
-    height: max-content;
-    margin-top: 2em;
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    flex-direction: column;
-    gap: 1em;
-}
-
-.switch {
-    width: 40%;
-    height: 3em;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    flex-direction: row;
-    background-color: white;
-    border-radius: 10px;
-    border: 1px solid black;
-    gap: 2em;
-}
-
-.switch div {
-    width: 3em;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    text-align: center;
-}
-
-
-.switch_icon_holder {
-    font-size: 24px;
-    cursor: pointer;
-}
-
-.input_area {
-    display: flex;
-    flex-direction: row;
-    justify-content: center;
-    align-items: center;
-    gap: 1em;
-}
-
-.source, .target {
-    background: white;
-    height: 25em;
-    width: 35em;
+.swith-page-language button {
+    background-color: #1D8D85;  /* 5080ff */
+    border: none;
+    padding: 10px 25px;
     border-radius: 20px;
-    border: 1px solid gray;
-    padding: 1em;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.cancel {
-    align-self: flex-start;
-    margin-top: 2em;
-    font-size: 18px;
-    border-radius: 30px;
-    width: 30px;
-    height: 30px;
-    transition: .3s;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    text-align: center;
-}
-.cancel button {
-    background-color: #cecece;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    border-radius: 30px;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    transition: .3s;
-    border: none;
-}
-.cancel button:hover {
-    background-color: rgb(143, 143, 143);
-    transition: .3s;
     cursor: pointer;
-}
-.cancel button:active {
-    border: none;
+    color: white;
+    font-size: 16px;
+    transition: all 0.3s ease;
     outline: none;
-}
-.cancel button:disabled {
-    cursor: auto;
-    opacity: 0;
-}
-.source textarea {
-    width: 100%;
-    height: 100%;
-    vertical-align: top;
-    border: none;
-    outline: none;
-    font-size: 18px;
-    font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
 }
 
-.target p {
-    width: 100%;
-    height: 100%;
-    text-align: left;
-    display: flex;
-    justify-content: flex-start;
-    align-items: flex-start;
-    font-size: 18px;
-    font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+.swith-page-language button:hover {
+    background-color: #1a7c76;
 }
-.source {
+
+textarea {
+    border: none;
+    outline: none;
+}
+
+.modal-title, .input-output label {
+    font-family: 'Lato', sans-serif;
+    font-weight: 700; /* Используем Lato для заголовков */
+}
+
+.container {
+    width: 90%;
+    max-width: 1000px;
+    background-color: #ffffff;
+    padding: 20px;
+    border-radius: 20px; /* Мягкое скругление */
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); /* Тени */
+}
+
+/* Стили для переключателей языков */
+.language-toggle {
+    position: relative; /* Родительский контейнер */
+    margin-bottom: 20px;
+    height: 50px; /* Задаем фиксированную высоту */
+}
+
+.language-toggle button {
+    background-color: #fff;
+    border: 2px solid #1D8D85; 
+    padding: 10px 20px;
+    border-radius: 30px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.3s ease;
+    position: relative;
+    outline: none;
+}
+
+#russian {
+    position: absolute;
+    width: 160px;
+    left: 20%; /* Прижимаем к левому краю */
+}
+
+#switch {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%); /* Центрируем свитч */
+}
+
+#mansi {
+    position: absolute;
+    width: 160px;
+    right: 20%; /* Прижимаем к правому краю */
+}
+
+.language-toggle button.active {
+    background-color: #1D8D85;  /* #5080ff */
+    color: white;
+    outline: none;
+}
+
+.language-toggle button:hover {
+    background-color: #167D75;  /* 3f6ad8 */
+    color: white;
+    outline: none;
+}
+
+/* Основной блок с полями для перевода */
+.translate-area {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
     position: relative;
 }
-.addition_symbols {
-    position: absolute;
-    top: -25px;
-    left: 20px;
-    width: 60%;
+
+.input-output {
+    width: 48%;
+    padding: 20px;
+    border-radius: 15px;
+    background-color: #f9f9f9; /* Светлый фон поля */
+    border: 1px solid #d9e2ec;  /* d9e2ec */
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05); /* Лёгкая тень */
 }
-.addition_symbols p {
+
+.input-output label {
+    font-weight: 600;  /* 500 */
+    margin-bottom: 10px;
+    display: block;
+    font-size: 1.1em;  /* 18px */
+    color: #334e68;  /*334e68 */;
+    margin-left: 10px;
+}
+
+textarea {
     width: 100%;
-    height: 1em;
-    display: flex;
-    justify-content: space-evenly;
-    align-items: center;
+    height: 150px;
+    border: none;
+    background: transparent;
+    resize: none;
+    font-size: 16px;
+    font-family: inherit;
+    color: #334e68;  /* 334e68 */
+    padding: 10px;
+    box-sizing: border-box;
 }
-.addition_symbols span {
-    width: 50px;
-    height: 30px;
-    padding: 5px;
-    background-color: white;
+
+textarea::placeholder {
+    color: #a1a9b2;  /* a1a9b2 */
+}
+
+.letter-buttons {
+    justify-content: flex-start;
+    gap: 8px;
+    margin-top: 10px;
+    visibility: visible;
+    display: flex;
+}
+
+.letter-buttons button {
+    background-color: #e5e9f1;  /* e5e9f1 */
+    border: none;
+    width: 30px;
+    padding: 10px;
     border-radius: 10px;
+    cursor: pointer;
+    font-size: 18px;
+    transition: background-color 0.3s ease;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    outline: none;
+}
+
+.letter-buttons button:hover {
+    background-color: #1D8D85;  /* 5080ff */
+    color: white;
+    outline: none;
+}
+
+.divider {
+    position: relative;
+    height: 100%;  /* Высота адаптируется к высоте родительского элемента */
+    width: 4px;   /* Фиксированная ширина */
+    background-color: white;  
+    display: flex;  /* Flexbox для центрирования кнопки */
+    justify-content: center;
+    align-items: center;
+    margin-top: 60px;
+}
+
+.divider button {
+    background-color: white;
+    width: 18px;  /* Фиксированная ширина кнопки */
+    height: 18px;  /* Фиксированная высота кнопки */
+    padding: 14px;
+    border-radius: 50%;  /* Делает кнопку круглой */
     display: flex;
     align-items: center;
     justify-content: center;
+    border: none;
+    transition: background-color .3s ease;
+    outline: none;
 }
 
-.addition_symbols span:hover {
+.divider button:hover {
+    background-color: rgb(216, 214, 214);
     cursor: pointer;
+    outline: none;
+}
+
+.divider button:active {
+    border: none;
+    outline: none;
+}
+
+.divider button:disabled {
+    cursor: auto;
+    opacity: 0;  /* Скрываем кнопку, если она отключена */
+    outline: none;
+}
+
+
+.translate-buttons {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+}
+
+.translate-buttons .left, .right {
+    display: flex;
+    gap: 10px;
+}
+
+.translate-buttons button {
+    background-color: #1D8D85;  /* 5080ff */
+    border: none;
+    padding: 10px 25px;
+    border-radius: 20px;
+    cursor: pointer;
+    color: white;
+    font-size: 16px;
+    transition: all 0.3s ease;
+    outline: none;
+    width: 220px;
+}
+
+.translate-buttons button:hover {
+    background-color: #167D75;  /* 3f6ad8 */
+}
+
+#improve:disabled {
+    cursor: not-allowed;
+    background-color: #1d8d8680;
+}
+
+/* Модальные окна */
+.rating-modal, .feedback-modal {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #ffffff;
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.modal-title {
+    margin-bottom: 15px;
+    font-weight: 500;
+    font-size: 20px;
+    color: #334e68;  /* 334e68 */
+}
+
+.stars {
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+}
+
+
+
+.stars button {
+    background-color: rgba(255, 255, 255, 0);
+    border: 2px solid black;
+    font-size: 20px;
+    cursor: pointer;
+    color: black;
+    border-radius: 20%;
+    padding: 10px;
+    transition: background-color 0.3s ease;
+    outline: none;
+}
+
+.stars button:hover, .stars button.active {
+    background-color: yellow;
+}
+
+
+.modal-thanks {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 400px;
+    height: 100px;
+    background-color: white;
+    border-radius: 40px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    color: black;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+.modal-thanks p {
+    padding: 0;
+    margin: 0;
+    align-self: center;
+}
+
+.modal-thanks span {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    transition: 0.3s ease;
+    width: 25px;
+    height: 25px;
+    border-radius: 25px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-thanks span:hover {
+    cursor: pointer;
+    transition: 0.3s ease;
+    background: rgb(238, 238, 238);
+}
+  
+
+
+/* Мобильные стили */
+@media (max-width: 768px) {
+    .translate-area {
+        flex-direction: column;
+    }
+
+    .input-output {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+
+    .divider {
+        display: none;
+    }
 }

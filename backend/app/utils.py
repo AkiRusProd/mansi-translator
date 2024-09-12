@@ -100,6 +100,6 @@ def preproc(
 
     # delete extra spaces
     for i in range(len(texts)):
-        texts[i] = " ".join(texts[i])
+        texts[i] = " ".join(texts[i].split())
 
     return texts[0] if is_str else texts
