@@ -1,4 +1,5 @@
 import logging
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
@@ -8,23 +9,28 @@ from transformers import AutoModelForSeq2SeqLM, NllbTokenizer
 
 from backend.app.config import CONFIG
 from backend.app.exception_handler import python_exception_handler, validation_exception_handler
-from backend.app.schema import (
-    ErrorResponse,
-    TranslationRequest,
-    TranslationResponse,
-    ProcessRequest,
-    ProcessResponse
-)
+from backend.app.schema import *
+from backend.app.db.db_utils import *
 from backend.app.utils import preproc
 from models.scripts.train_model import LightningModel
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Код для запуска при старте приложения
+    await on_startup()
+    yield  # Здесь приложение начнет обрабатывать запросы
+    # Код для завершения работы приложения
+    if "connection" in app.package:
+        await app.package["connection"].close()
 
 app = FastAPI(
     title="Rus-mansi and mansi-rus translator",
     description="Translator from russian to mansi and back based on NLLB model",
-    version="0.8.0",
+    version="0.9.0",
     terms_of_service=None,
     contact=None,
-    license_info=None
+    license_info=None,
+    lifespan=lifespan
 )
 
 if CONFIG['ENV'] == 'development':
@@ -48,7 +54,7 @@ else:
 app.add_exception_handler(RequestValidationError, validation_exception_handler)
 app.add_exception_handler(Exception, python_exception_handler)
 
-def on_startup() -> None:
+async def on_startup() -> None:
     global app
     logger.info(f"Running envirnoment: {CONFIG['ENV']}")
     logger.info(f"PyTorch using device: {CONFIG['DEVICE']}")
@@ -62,7 +68,8 @@ def on_startup() -> None:
     model = LightningModel(model, tokenizer)
 
     app.package = {
-        "model": model
+        "model": model,
+        "connection": await db_init()
     }
 
 
@@ -73,8 +80,10 @@ def on_startup() -> None:
 })
 async def translate(request: TranslationRequest):
     logger.info(f"Received request for translation: {request}")
+    text = preproc(request.text, CONFIG['CHANGE_MACRONS'])
+    logger.info(f"Text after preproc: {text}")
     translated_text = app.package['model'].predict(
-        preproc(request.text, CONFIG['CHANGE_MACRONS']),
+        text,
         request.source_lang,
         request.target_lang
     )[0]
@@ -100,6 +109,30 @@ async def process(request: ProcessRequest):
     )
     return {"processed_data": processed_data}
 
+@app.post("/rate", responses={
+    422: {"model": ErrorResponse},
+    500: {"model": ErrorResponse}
+})
+async def rate(request: RateRequest):
+    request_dict = request.model_dump()
+    logger.info(
+        f"Received rate request: {request_dict}"
+    )
+    await write_rating(app.package['connection'], request_dict)
+    return
+
+@app.post("/improve", responses={
+    422: {"model": ErrorResponse},
+    500: {"model": ErrorResponse}
+})
+async def rate(request: ImproveRequest):
+    request_dict = request.model_dump()
+    logger.info(
+        f"Received improve request: {request_dict}"
+    )
+    await write_improvement(app.package['connection'], request_dict)
+    return
+
 # model = AutoModelForSeq2SeqLM.from_pretrained("re-init/model/nllb-200-distilled-600M")
 # tokenizer = NllbTokenizer.from_pretrained("re-init/tokenizer/nllb-200-distilled-600M")
 
@@ -114,13 +147,12 @@ async def process(request: ProcessRequest):
 
 # TODO: Refactor this
 
-on_startup()
 if __name__ == "__main__":
     # uvicorn backend.app.main:app --reload --log-config backend/app/log.ini
 
     import uvicorn
     uvicorn.run(
-        "main:app",
+        app,
         port=CONFIG['FASTAPI_PORT'],
         reload=True,
         log_config="log.ini"

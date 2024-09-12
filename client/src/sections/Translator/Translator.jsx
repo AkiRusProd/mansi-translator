@@ -20,7 +20,7 @@ const textLayout = {
     'rus': 'Русский',
     'mansi': 'Мансийский',
     'rate_trans': 'Оценить перевод',
-    'improve_trans': 'Улучшить перевод',
+    'improve_trans': 'Предложить перевод',
     'text_input': 'Введите текст',
     'trans_here': 'Здесь будет перевод',
     'rate_trans_long': 'Оцените качество перевода',
@@ -40,7 +40,7 @@ const textLayout = {
     'rus': 'Русь',
     'mansi': 'Мāньси',
     'rate_trans': 'Ла̄тыӈ толмащлан ва̄рмаль янытлаӈкв',
-    'improve_trans': 'Ла̄тыӈ ю̄нтуӈкв',
+    'improve_trans': 'Толмасьлаӈкв',
     'text_input': 'Потырлтэ̄н',
     'trans_here': 'Тыт тах толмащлаӈкв паты',
     'rate_trans_long': 'Ла̄тыӈ толмащлан ва̄рмалит янытлым о̄ньселы̄н',
@@ -132,6 +132,13 @@ const Translator = () => {
   const handleKeyUp = (e) => {
     if (e.key === 'Shift') {
       setSymbType('lower')
+    }
+  }
+
+  const handleLetterAdd = (letter) => {
+    setSourceText(sourceText.slice() + letter)
+    if (textareaRef.current) {
+      textareaRef.current.focus()
     }
   }
 
@@ -235,7 +242,10 @@ const Translator = () => {
                     style={{visibility: sourceLng === 'mansi' ? ('visible') : ('hidden')}}
                   >
                       {addSymb[symbType].map((s, index) => (
-                        <button key={index}>{s}</button>
+                        <button 
+                          key={index}
+                          onClick={() => handleLetterAdd(s)}
+                        >{s}</button>
                       ))}
                   </div>
               </div>

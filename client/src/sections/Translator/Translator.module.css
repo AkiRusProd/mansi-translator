@@ -240,7 +240,7 @@ textarea::placeholder {
     font-size: 16px;
     transition: all 0.3s ease;
     outline: none;
-    width: 210px;
+    width: 220px;
 }
 
 .translate-buttons button:hover {
