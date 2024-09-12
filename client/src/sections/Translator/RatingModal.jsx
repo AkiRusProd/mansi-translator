@@ -29,6 +29,17 @@ const RatingModal = (props) => {
     <div className={classes['rating-modal']} id={classes['ratingModal']}>
       {!isRated ? (
         <>
+          <button 
+            className={classes['close-button']}
+            onClick={handleCloseModal}
+            style={{
+              position: 'absolute',
+              top: '15px',
+              right: '15px'
+            }}
+          >
+            ✕
+          </button>
           <div className={classes['modal-title']}>
             {props.textLayout[props.pageLanguage]['rate_trans_long']}
           </div>

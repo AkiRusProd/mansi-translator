@@ -1,5 +1,5 @@
 // eslint-disable-next-line
-import React, { useState, useEffect, useRef} from 'react';
+import React, { useState, useRef} from 'react';
 import classes from './Translator.module.css';
 import { translate } from '../../http/translationAPI';
 import Loading from '../Loading';
@@ -48,12 +48,12 @@ const textLayout = {
     'close': 'Пӯмасаӈкв',
     'send': 'Кēтуӈкве',
     'switch_page_language': 'Сменить язык',
-    'improve_disabled': 'Введите текст для переводаа̄а̄а̄',
-    'thankyou-rate': 'Спасибо за оценку!а̄а̄а̄а̄',
-    'thankyou-improve': 'Спасибо за обратную связь!а̄а̄а̄',
-    'source_text': 'Исходный текста̄а̄а̄',
-    'your_translation': 'Ваш перевода̄а̄а̄',
-    'enter_your_translation': 'Введите свой перевода̄а̄а̄а̄'
+    'improve_disabled': 'Толмащлан ма̄гыс потыр',
+    'thankyou-rate': 'Пӯмасӣпа, оценка ма̄гыс!',
+    'thankyou-improve': 'Пӯмасӣпа наӈын ювле о̄лнэ магсыл!',
+    'source_text': 'Тэ̄рнэ потыр',
+    'your_translation': 'На̄н толмащлан на̄н',
+    'enter_your_translation': 'Наӈки толмасьлан ла̄тыӈ хӯлтэн'
   }
 }
 
@@ -77,6 +77,7 @@ const Translator = () => {
   const [pageLanguage, setPageLanguage] = useState('rus')
   const [isRating, setIsRating] = useState(false)
   const typingTimeoutRef = useRef(null)
+  const textareaRef = useRef(null)
 
   const switchLanguages = () => {
     let src = sourceLng.slice()
@@ -95,6 +96,9 @@ const Translator = () => {
     setIsLoading(false)
     setSourceText('')
     setTranslationText('')
+    if (textareaRef.current) {
+      textareaRef.current.focus()
+    }
   }
 
   const handleInputChange = (e) => {
@@ -218,6 +222,7 @@ const Translator = () => {
               <div class={classes["input-output"]}>
                   <label id={classes["input-label"]}>{textLayout[pageLanguage][sourceLng]}</label>
                   <textarea
+                    ref={textareaRef}
                     onChange={handleInputChange}
                     onKeyDown={handleKeyPress}
                     onKeyUp={handleKeyUp}
