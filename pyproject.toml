@@ -21,6 +21,8 @@ ipykernel = "^6.29.5"
 protobuf = "^5.28.0"
 fastapi = "^0.114.0"
 uvicorn = "^0.30.6"
+gunicorn = "^23.0.0"
+aiosqlite = "^0.20.0"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.6.3"

@@ -26,6 +26,27 @@ project-root/
 └── .env.example            # Пример файла конфигурации окружения
 ```
 
+## Запуск
+
+### Установка зависимостей
+```bash
+pip intall poetry
+poetry install
+```
+
+### Frontend
+```bash
+cd client
+npm install
+npm start
+```
+### Backend
+```bash
+uvicorn backend.app.main:app --reload --log-config backend/app/log.ini
+```
+
+После запуска веб-интерфейс будет доступен по адресу http://localhost:3000/
+
 # Памятка для разработчиков
 
 ### Ведение разработки
