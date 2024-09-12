@@ -93,12 +93,17 @@ async def translate(request: TranslationRequest):
         request.target_lang
     )[0]
 
-    elapsed_time = round(time.time() - start_time, 2)
+    elapsed_time = max(round(time.time() - start_time, 2), 1e-10)
     text_len = len(translated_text)
     chars_per_sec = round(text_len/elapsed_time, 2)
 
     logger.info(f"Sending translated text: {translated_text}")
-    return {"translated_text": translated_text, "text_len": text_len, "elapsed_time": elapsed_time, "chars_per_sec": chars_per_sec}
+    return {
+        "translated_text": translated_text,
+        "text_len": text_len,
+        "elapsed_time": elapsed_time,
+        "chars_per_sec": chars_per_sec
+    }
 
 @app.post("/process", responses={
     200: {"model": ProcessResponse},

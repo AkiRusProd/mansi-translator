@@ -222,6 +222,7 @@ textarea::placeholder {
 .translate-buttons {
     display: flex;
     justify-content: space-between;
+    /* height: 80px; */
     margin-top: 10px;
 }
 
@@ -241,6 +242,8 @@ textarea::placeholder {
     transition: all 0.3s ease;
     outline: none;
     width: 220px;
+    /* min-height: 50px;
+    height:  max-content; */
 }
 
 .translate-buttons button:hover {
@@ -338,6 +341,36 @@ textarea::placeholder {
     cursor: pointer;
     transition: 0.3s ease;
     background: rgb(238, 238, 238);
+}
+.left {
+    width: 48%;
+    display: flex;
+    align-items: center;
+    justify-content: space-evenly;
+    flex-direction: row;
+}
+
+.left div {
+    width: 170px;
+    height: 70px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+}
+
+.left p {
+    font-weight: 550; /* Используем Lato для заголовков */
+    background: white;
+    color: #334e68;
+    text-decoration: solid;
+    /* text-shadow: 1px 1px 2px rgba(102, 102, 102, 0.445); */
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
 }
   
 

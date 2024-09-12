@@ -18,25 +18,23 @@ class TranslationRequest(BaseModel):
         description='Source language, can only be "mansi_Cyrl" or "rus_Cyrl".'
     )
 
-    text_len: int = Field(
-        ...,
-        description="Text length in chars"
-    )
-
-    elapsed_time: float = Field(
-        ...,
-        description="Time in seconds elapsed for text generation"
-    )
-
-    chars_per_sec: float = Field(
-        ...,
-        description="Characters per second"
-    )
 class TranslationResponse(BaseModel):
     translated_text: str = Field(
         ...,
         description='Text translated to target language',
         example='Привёз её домой'
+    )
+    text_len: int = Field(
+        ...,
+        description="Text length in chars"
+    )
+    elapsed_time: float = Field(
+        ...,
+        description="Time in seconds elapsed for text generation"
+    )
+    chars_per_sec: float = Field(
+        ...,
+        description="Characters per second"
     )
 
 class ProcessRequest(BaseModel):
