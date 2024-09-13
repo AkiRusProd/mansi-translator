@@ -17,24 +17,25 @@ python -m models.scripts.test_model
 
 def test(
     df_path: str = "data/cleared_v2/cleared_v2_test_005.csv", 
-    model_path: str = "models/checkpoint/re-init", 
-    tokenizer_path: str = "models/checkpoint/re-init",
-    tokenizer_vocab_file_path: str = "models/checkpoint/re-init/spm_nllb_mansi_268k.model", 
-    ckpt_path: Optional[Union[str, None]] = 'models/checkpoint/last.ckpt'
+    model_path: str = "models/pretrained/nllb-rus-mansi-v5_2", 
+    tokenizer_path: str = "models/pretrained/nllb-rus-mansi-v5_2",
+    tokenizer_vocab_file_path: str = "models/pretrained/nllb-rus-mansi-v5_2/sentencepiece.bpe.model", 
+    ckpt_path: Optional[Union[str, None]] = None,
 ):
     test_df = pd.read_csv(df_path)
 
     model = AutoModelForSeq2SeqLM.from_pretrained(model_path)
+    model.eval()
     tokenizer = NllbTokenizer.from_pretrained(tokenizer_path, vocab_file = tokenizer_vocab_file_path)
 
-    test_dataset = ThisDataset(test_df)
-    test_dataloader = DataLoader(test_dataset, batch_size=1, num_workers=14, collate_fn = TestCollateFn(tokenizer, 'mansi_Cyrl', 'rus_Cyrl'))
+    test_dataset = ThisDataset(test_df, random=False)
+    test_dataloader = DataLoader(test_dataset, batch_size=1, num_workers=14, collate_fn = TestCollateFn(tokenizer, 'mansi_Cyrl', 'rus_Cyrl', num_beams=1))
 
     logger = TensorBoardLogger("./tb_logs")
 
     lightning_model = LightningModel(model, tokenizer)
 
-    trainer = Trainer(strategy='ddp', logger=logger, devices = "auto", log_every_n_steps=1, precision="16-mixed")
+    trainer = Trainer(logger=logger, devices = [0], log_every_n_steps=1, precision="32-true")
     trainer.test(model=lightning_model, dataloaders=test_dataloader, ckpt_path=ckpt_path)
 
 if __name__ == "__main__":
