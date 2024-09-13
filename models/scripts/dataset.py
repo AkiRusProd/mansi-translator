@@ -84,11 +84,15 @@ def load_data(dataset_path, words_dict_path = None):
 
 
 class ThisDataset(Dataset):
-    def __init__(self, df):
+    def __init__(self, df, random: bool):
         self.df = df
+        self.random = random
 
     def __getitem__(self, idx):
-        item = self.df.iloc[idx]
+        if self.random:
+            item = self.df.iloc[random.randint(0, len(self.df)-1)]  # noqa: S311
+        else:
+            item = self.df.iloc[idx]
 
         return item
     
@@ -146,11 +150,12 @@ class LangCollateFn(CollateFn):
 
 
 class TestCollateFn():
-    def __init__(self, tokenizer: NllbTokenizer, src_lang, tgt_lang, a=32, b=3, max_input_length=1024, num_beams=4):
+    def __init__(self, tokenizer: NllbTokenizer, src_lang, tgt_lang, a=32, b=3, max_input_length=1024, num_beams=4, max_length = 128):
         self.tokenizer = tokenizer
 
         self.tokenizer.src_lang = src_lang
         self.tokenizer.tgt_lang = tgt_lang
+        self.max_length = max_length
 
         # TODO: Change this
         self.covert = {
@@ -173,6 +178,7 @@ class TestCollateFn():
             y_texts.append(preproc(item[self.covert[self.tokenizer.tgt_lang]]))
 
         inputs = self.tokenizer(x_texts, return_tensors='pt', padding='longest')
+        # inputs = self.tokenizer(x_texts,  return_tensors='pt', padding=True, truncation=True, max_length=self.max_length)
 
         return {
             "x": inputs,

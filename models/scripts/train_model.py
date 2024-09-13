@@ -15,8 +15,8 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 # from pytorch_lightning.strategies import FSDPStrategy
-# from transformers.optimization import Adafactor
-from transformers import AutoModelForSeq2SeqLM, NllbTokenizer, get_cosine_schedule_with_warmup
+from transformers.optimization import Adafactor
+from transformers import AutoModelForSeq2SeqLM, NllbTokenizer, get_constant_schedule_with_warmup
 
 from models.scripts.dataset import CollateFn, LangCollateFn, ThisDataset
 
@@ -38,7 +38,7 @@ class LightningModel(pl.LightningModule):
         self.bleu_calc = sacrebleu.BLEU()
         self.chrf_calc = sacrebleu.CHRF(word_order=2)  # this metric is called ChrF++
 
-    def predict(self, text, src_lang='mansi_Cyrl', tgt_lang='rus_Cyrl', a=32, b=3, max_input_length=1024, num_beams=4, **kwargs):
+    def predict(self, text, src_lang='mansi_Cyrl', tgt_lang='rus_Cyrl', a=32, b=3, max_input_length=1024, num_beams=1, **kwargs):
         self.tokenizer.src_lang = src_lang
         self.tokenizer.tgt_lang = tgt_lang
         inputs = self.tokenizer(text, return_tensors='pt', padding=True, truncation=True, max_length=max_input_length)
@@ -110,10 +110,13 @@ class LightningModel(pl.LightningModule):
             result_texts, tgt_texts = [], []
             for result_text, tgt_text in temp_values:
                 result_texts.append(result_text)
-                tgt_texts.append(tgt_text)
+                tgt_texts.append([tgt_text])
 
-            bleu_score = self.bleu_calc.corpus_score(result_texts, [tgt_texts]).score
-            chrf_score = self.chrf_calc.corpus_score(result_texts, [tgt_texts]).score
+            bleu_score = self.bleu_calc.corpus_score(result_texts, tgt_texts).score
+            chrf_score = self.chrf_calc.corpus_score(result_texts, tgt_texts).score
+
+            print(self.bleu_calc.corpus_score(result_texts, tgt_texts))
+            print(self.chrf_calc.corpus_score(result_texts, tgt_texts))
 
             self.log("BLEU", bleu_score)
             self.log("chrF", chrf_score)
@@ -123,18 +126,18 @@ class LightningModel(pl.LightningModule):
             return {"BLEU": bleu_score, "chrF": chrf_score}
 
     def configure_optimizers(self):
-        # optimizer = Adafactor(
-        #     [p for p in self.model.parameters() if p.requires_grad],
-        #     scale_parameter=False,
-        #     relative_step=False,
-        #     lr=1e-4,
-        #     clip_threshold=1.0,
-        #     weight_decay=1e-3,
-        # )
-        # scheduler = get_constant_schedule_with_warmup(optimizer, num_warmup_steps=1_000)
+        optimizer = Adafactor(
+            [p for p in self.model.parameters() if p.requires_grad],
+            scale_parameter=False,
+            relative_step=False,
+            lr=1e-4,
+            clip_threshold=1.0,
+            weight_decay=1e-3,
+        )
+        scheduler = get_constant_schedule_with_warmup(optimizer, num_warmup_steps=1000)
 
-        optimizer = AdamW([p for p in self.model.parameters() if p.requires_grad], lr = 2e-4, betas = (0.9, 0.98)) # best : lr = 2e-4, betas = (0.9, 0.95) max_steps=50000 #; 1e-3 max_steps = 10000, wmup = 300
-        scheduler = get_cosine_schedule_with_warmup(optimizer, num_warmup_steps=700, num_training_steps=self.trainer.max_steps)
+        # optimizer = AdamW([p for p in self.model.parameters() if p.requires_grad], lr = 2e-4, betas = (0.9, 0.98)) # best : lr = 2e-4, betas = (0.9, 0.95) max_steps=50000 #; 1e-3 max_steps = 10000, wmup = 300
+        # scheduler = get_cosine_schedule_with_warmup(optimizer, num_warmup_steps=700, num_training_steps=self.trainer.max_steps)
 
         return {
             'optimizer': optimizer,
@@ -148,36 +151,36 @@ class LightningModel(pl.LightningModule):
     def convert_ckpt_to_tranformers(self, save_directory: str):
         self.model.save_pretrained(save_directory)
 
-@rank_zero_only
-def prepare_model_and_tokenizer(model_name, vocab_file, reinit_model_path):
-    # TODO: Refactor this
+# @rank_zero_only
+# def prepare_model_and_tokenizer(model_name, vocab_file, reinit_model_path):
+#     # TODO: Refactor this
 
-    # loading the tokenizers
-    tokenizer_old = NllbTokenizer.from_pretrained(model_name)
-    tokenizer = NllbTokenizer.from_pretrained(model_name, vocab_file=vocab_file)
+#     # loading the tokenizers
+#     tokenizer_old = NllbTokenizer.from_pretrained(model_name)
+#     tokenizer = NllbTokenizer.from_pretrained(model_name, vocab_file=vocab_file)
 
-    added_vocab = set(tokenizer.get_vocab()).difference(set(tokenizer_old.get_vocab()))
+#     added_vocab = set(tokenizer.get_vocab()).difference(set(tokenizer_old.get_vocab()))
 
-    model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
-    model.resize_token_embeddings(len(tokenizer))
+#     model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
+#     model.resize_token_embeddings(len(tokenizer))
 
-    # re-initializing the new embeddings
-    for t in tqdm(added_vocab, desc = "Re-initializing new embeddings"):
-        tt = tokenizer_old(t, add_special_tokens=False).input_ids
-        if len(tt) == 0:
-            tt = [tokenizer_old.unk_token_id]
-        idx = tokenizer.convert_tokens_to_ids(t)
-        model.model.shared.weight.data[idx] = model.model.shared.weight.data[tt].mean(0)
+#     # re-initializing the new embeddings
+#     for t in tqdm(added_vocab, desc = "Re-initializing new embeddings"):
+#         tt = tokenizer_old(t, add_special_tokens=False).input_ids
+#         if len(tt) == 0:
+#             tt = [tokenizer_old.unk_token_id]
+#         idx = tokenizer.convert_tokens_to_ids(t)
+#         model.model.shared.weight.data[idx] = model.model.shared.weight.data[tt].mean(0)
 
-    model.save_pretrained(reinit_model_path)
-    tokenizer.save_pretrained(reinit_model_path)
+#     model.save_pretrained(reinit_model_path)
+#     tokenizer.save_pretrained(reinit_model_path)
 
-    del model, tokenizer
+#     del model, tokenizer
     
 
 def train(
     batch_size: int = 16, 
-    checkpoints_dir: str = "models/checkpoint", 
+    checkpoints_dir: str = "models/checkpoint/cleared_v2", 
     checkpoint_path: Optional[str] = None,  
     model_name: str = "facebook/nllb-200-distilled-600M", 
     vocab_file: str = "models/checkpoint/re-init/spm_nllb_mansi_268k.model",
@@ -198,25 +201,26 @@ def train(
         save_last=True
     )
 
-    reinit_model_path: Path = Path(reinit_model_path)
-    if not reinit_model_path.exists():
-        reinit_model_path.mkdir(parents=True, exist_ok=True)
-        prepare_model_and_tokenizer(model_name, vocab_file, reinit_model_path)
+    # reinit_model_path: Path = Path(reinit_model_path)
+    # if not (reinit_model_path / "config.json").exists():
+    #     reinit_model_path.mkdir(parents=True, exist_ok=True)
+    #     prepare_model_and_tokenizer(model_name, vocab_file, reinit_model_path)
         
     model = AutoModelForSeq2SeqLM.from_pretrained(reinit_model_path)
+    model.train()
     tokenizer = NllbTokenizer.from_pretrained(reinit_model_path, vocab_file=vocab_file)
 
-    train_dataloader = DataLoader(ThisDataset(train_df), batch_size=batch_size, shuffle=True, collate_fn=CollateFn(tokenizer), num_workers=14)
+    train_dataloader = DataLoader(ThisDataset(train_df, random=True), batch_size=batch_size, shuffle=True, collate_fn=CollateFn(tokenizer), num_workers=14)
 
-    val_ru_mansi_dataloader = DataLoader(ThisDataset(val_df), batch_size=batch_size, collate_fn=LangCollateFn(tokenizer, src_lang='rus_Cyrl', tgt_lang='mansi_Cyrl'), num_workers=14)
-    val_mansi_ru_dataloader = DataLoader(ThisDataset(val_df), batch_size=batch_size, collate_fn=LangCollateFn(tokenizer, src_lang='mansi_Cyrl', tgt_lang='rus_Cyrl'), num_workers=14)
+    val_ru_mansi_dataloader = DataLoader(ThisDataset(val_df, random=True), batch_size=batch_size, collate_fn=LangCollateFn(tokenizer, src_lang='rus_Cyrl', tgt_lang='mansi_Cyrl'), num_workers=14)
+    val_mansi_ru_dataloader = DataLoader(ThisDataset(val_df, random=True), batch_size=batch_size, collate_fn=LangCollateFn(tokenizer, src_lang='mansi_Cyrl', tgt_lang='rus_Cyrl'), num_workers=14)
 
     val_dataloaders = CombinedLoader(iterables=[val_ru_mansi_dataloader, val_mansi_ru_dataloader], mode="sequential")
 
     lr_monitor = LearningRateMonitor(logging_interval='step')
     lightning_model = LightningModel(model)
-    
-    trainer = Trainer(max_steps=21000, callbacks=[checkpoint_callback, lr_monitor], strategy="fsdp", logger=logger, devices = "auto", log_every_n_steps=1, val_check_interval = 200, precision="16-mixed") # check_val_every_n_epoch=1 val_check_interval=4482,
+    # NOTE: FOUND BUG IN DDP and FSDP; Reason: unexpected behavior
+    trainer = Trainer(max_steps=21000, callbacks=[checkpoint_callback, lr_monitor], logger=logger, devices = [0], log_every_n_steps=1, val_check_interval = 1000, precision="32-true") # check_val_every_n_epoch=1 val_check_interval=4482,
     trainer.fit(model=lightning_model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloaders, ckpt_path=checkpoint_path)
 
 
