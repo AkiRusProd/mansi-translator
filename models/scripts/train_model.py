@@ -1,4 +1,3 @@
-from pathlib import Path
 from typing import Optional
 
 import pandas as pd
@@ -9,14 +8,19 @@ import typer
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.utilities import CombinedLoader, rank_zero_only
-from torch.optim import AdamW
+from pytorch_lightning.utilities import CombinedLoader  #, rank_zero_only
+
+# from torch.optim import AdamW
 from torch.utils.data import DataLoader
-from tqdm import tqdm
+from transformers import (
+    AutoModelForSeq2SeqLM,
+    NllbTokenizer,
+    # get_constant_schedule_with_warmup,
+    get_cosine_schedule_with_warmup,
+)
 
 # from pytorch_lightning.strategies import FSDPStrategy
 from transformers.optimization import Adafactor
-from transformers import AutoModelForSeq2SeqLM, NllbTokenizer, get_constant_schedule_with_warmup
 
 from models.scripts.dataset import CollateFn, LangCollateFn, ThisDataset
 
@@ -134,10 +138,10 @@ class LightningModel(pl.LightningModule):
             clip_threshold=1.0,
             weight_decay=1e-3,
         )
-        scheduler = get_constant_schedule_with_warmup(optimizer, num_warmup_steps=1000)
+        # scheduler = get_constant_schedule_with_warmup(optimizer, num_warmup_steps=1000)
 
         # optimizer = AdamW([p for p in self.model.parameters() if p.requires_grad], lr = 2e-4, betas = (0.9, 0.98)) # best : lr = 2e-4, betas = (0.9, 0.95) max_steps=50000 #; 1e-3 max_steps = 10000, wmup = 300
-        # scheduler = get_cosine_schedule_with_warmup(optimizer, num_warmup_steps=700, num_training_steps=self.trainer.max_steps)
+        scheduler = get_cosine_schedule_with_warmup(optimizer, num_warmup_steps=1000, num_training_steps=self.trainer.max_steps)
 
         return {
             'optimizer': optimizer,
@@ -180,17 +184,17 @@ class LightningModel(pl.LightningModule):
 
 def train(
     batch_size: int = 16, 
-    checkpoints_dir: str = "models/checkpoint/cleared_v2", 
+    checkpoints_dir: str = "models/checkpoint/cleared-v2.0", 
     checkpoint_path: Optional[str] = None,  
     model_name: str = "facebook/nllb-200-distilled-600M", 
-    vocab_file: str = "models/checkpoint/re-init/spm_nllb_mansi_268k.model",
+    vocab_file: str = "models/checkpoint/re-init/sentencepiece.bpe.model",
     reinit_model_path: str = "models/checkpoint/re-init",
     train_df_path: str = "data/cleared_v2/cleared_v2_train_09.csv",
     val_df_path: str = "data/cleared_v2/cleared_v2_val_005.csv"
 ):
     train_df, val_df = pd.read_csv(train_df_path), pd.read_csv(val_df_path)
     
-    logger = TensorBoardLogger("./tb_logs")
+    logger = TensorBoardLogger("./tb_logs", version = "cleared_2.0")
 
     checkpoint_callback = ModelCheckpoint(
         dirpath = checkpoints_dir,
@@ -212,15 +216,15 @@ def train(
 
     train_dataloader = DataLoader(ThisDataset(train_df, random=True), batch_size=batch_size, shuffle=True, collate_fn=CollateFn(tokenizer), num_workers=14)
 
-    val_ru_mansi_dataloader = DataLoader(ThisDataset(val_df, random=True), batch_size=batch_size, collate_fn=LangCollateFn(tokenizer, src_lang='rus_Cyrl', tgt_lang='mansi_Cyrl'), num_workers=14)
-    val_mansi_ru_dataloader = DataLoader(ThisDataset(val_df, random=True), batch_size=batch_size, collate_fn=LangCollateFn(tokenizer, src_lang='mansi_Cyrl', tgt_lang='rus_Cyrl'), num_workers=14)
+    val_ru_mansi_dataloader = DataLoader(ThisDataset(val_df, random=False), batch_size=batch_size, collate_fn=LangCollateFn(tokenizer, src_lang='rus_Cyrl', tgt_lang='mansi_Cyrl'), num_workers=14)
+    val_mansi_ru_dataloader = DataLoader(ThisDataset(val_df, random=False), batch_size=batch_size, collate_fn=LangCollateFn(tokenizer, src_lang='mansi_Cyrl', tgt_lang='rus_Cyrl'), num_workers=14)
 
     val_dataloaders = CombinedLoader(iterables=[val_ru_mansi_dataloader, val_mansi_ru_dataloader], mode="sequential")
 
     lr_monitor = LearningRateMonitor(logging_interval='step')
     lightning_model = LightningModel(model)
-    # NOTE: FOUND BUG IN DDP and FSDP; Reason: unexpected behavior
-    trainer = Trainer(max_steps=21000, callbacks=[checkpoint_callback, lr_monitor], logger=logger, devices = [0], log_every_n_steps=1, val_check_interval = 1000, precision="32-true") # check_val_every_n_epoch=1 val_check_interval=4482,
+
+    trainer = Trainer(max_steps=110000, callbacks=[checkpoint_callback, lr_monitor], logger=logger, devices = [0], log_every_n_steps=1, val_check_interval = 980, precision="32-true") # check_val_every_n_epoch=1 val_check_interval=4482,
     trainer.fit(model=lightning_model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloaders, ckpt_path=checkpoint_path)
 
 
